@@ -1,0 +1,120 @@
+#!/usr/bin/env bash
+
+set -eu
+
+source "$PGENV_LIBEXEC"/pgenv--load
+
+# Command line options
+declare -A options
+options=(
+  [force]=0
+)
+
+# Arguments array
+arguments=()
+
+# Path to link
+pg_link_path=
+
+# Version name
+pg_link_name=
+
+
+#: parse_options [arg ...]
+#:   Parse command line options.
+#:
+parse_options() {
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      -f|--force)
+        options[force]=1
+        ;;
+      -*)
+        abort "error: $(self): invalid option: $1"
+        ;;
+      *)
+        arguments[${#arguments[@]}]="$1"
+        ;;
+    esac
+    shift
+  done
+
+  if [ ${#arguments[@]} -lt 2 ]; then
+    abort "error: <path> is empty"
+  fi
+
+  # Check path
+  pg_link_path="${arguments[0]}"
+  if [ "${pg_link_path:0:1}" != "/" ]; then
+    pg_link_path="$PWD/$pg_link_path"
+    if [ -d "$pg_link_path" ] || [ -L "$pg_link_path" ]; then
+      local status=0
+      (cd -P -- "$pg_link_path" && pwd -P) &> /dev/null || status=$?
+      if [ $status -ne 0 ]; then
+        abort "error: invalid path: $pg_link_path"
+      fi
+    else
+      abort "error: path must be directory or symbolic link: $pg_link_path"
+    fi
+  fi
+
+  pg_link_name="${arguments[1]}"
+}
+
+
+#: create_link
+#:   Create a link.
+#:
+create_link() {
+
+  # Change working directory.
+  cd "$PGENV_ROOT"
+
+  local version_link="$PGENV_VERSIONS_DIR/$pg_link_name"
+
+  if [ -L "$version_link" ]; then
+    if [ ${options[force]} -eq 1 ]; then
+      log_info "==> overwrite the link: $pg_link_name -> $pg_link_path"
+      ln -snf "$pg_link_path" "$version_link"
+    else
+      log_warn "alreay exists: $pg_link_name"
+      log_warn "If overwrite, pass '-f' option"
+      exit 1
+    fi
+  else
+    log_info "==> create a link: $pg_link_path -> $pg_link_path"
+    ln -snf "$pg_link_path" "$version_link"
+  fi
+}
+
+# Parse command line options.
+parse_options "$@"
+
+# Create a link
+create_link
+
+exit $?
+
+
+#=begin COMMAND
+#
+# link        Create a link to the specified path.
+#
+#=end COMMAND
+
+#=begin HELP
+#
+# Usage: pgenv link [-f|--force] <path> <linkname>
+#
+# Create a symbolic link to the path with the specified linkname.
+#
+#
+# SYNOPSIS
+#   pgenv link /path/to/pg mypg
+#
+# OPTIONS
+#   -f, --force
+#     Overwrite existed link.
+#
+#
+#=end HELP

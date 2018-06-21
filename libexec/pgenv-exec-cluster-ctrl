@@ -1,0 +1,169 @@
+#!/usr/bin/env bash
+
+set -eu
+
+source "$PGENV_LIBEXEC"/pgenv--load
+source "$PGENV_LIBEXEC"/pgenv--cluster-functions
+
+
+# Command line options
+declare -A options
+options=(
+  [attach]=0
+  [detach]=0
+  [analyze]=0
+  [start]=0
+  [fork_off]=""
+)
+
+
+# Arguments array
+arguments=()
+
+
+OLDPWD="$PWD"
+
+
+#: parse_options [arg ...]
+#:   Parse command line options.
+#:
+parse_options() {
+  local status=0
+
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      -a|--attach)     options[attach]=1   ;;
+      -d|--detach)     options[detach]=1   ;;
+      -A|--analyze)    options[analyze]=1  ;;
+      -S|--start)      options[start]=1    ;;
+      -f|--fork-off)
+        shift
+        options[fork_off]="$1"
+        ;;
+      -*)
+        abort "error: $(self): invalid option: $1"
+        ;;
+      *)
+        arguments[${#arguments[@]}]="$1"
+        ;;
+    esac
+    shift
+  done
+
+  local instance=
+
+  # Eather one of --attach and --detach, --analyze is required.
+  if [ ${options[attach]} -eq 0 ] && [ ${options[detach]} -eq 0 ] && \
+       [ ${options[analyze]} -eq 0 ]; then
+    abort "error: Eather one of --attach, --detach and --analyze must be set"
+  fi
+
+  # Cannot specify both mode.
+  if [ ${options[attach]} -eq 1 ] && [ ${options[detach]} -eq 1 ]; then
+    abort "error: Both --attach and --detach must not be set"
+  fi
+
+  # When --attach is set, --fork-off is required.
+  if [ ${options[attach]} -eq 1 ]; then
+    if [ -z "${options[fork_off]}" ]; then
+      error "error: With --attach, --fork-off must be passed"
+      abort "hint: please set --attach with --fork-off"
+    fi
+
+    # Check whether fork-based node is invalid.
+    instance="$(get_instance "${options[fork_off]}")"
+    if [ -z "$instance" ]; then
+      error "error: invalid instance: ${options[fork_off]}"
+      abort "hint: Is --fork-off node '${options[fork_off]}' valid ?"
+    fi
+
+    if [ ${#arguments[@]} -ne 1 ]; then
+      error "error: <node> is not set or more nodes may be set: ${arguments[@]}"
+      abort "hint: please set only a node"
+    fi
+  fi
+
+  # Check whether detached node is invalid.
+  if [ ${options[detach]} -eq 1 ]; then
+    if [ ${#arguments[@]} -ne 1 ]; then
+      error "error: <node> is not set or more nodes may be set: ${arguments[@]}"
+      abort "hint: please set only a node"
+    fi
+
+    instance="$(get_instance "${arguments[0]}")"
+    if [ -z "$instance" ]; then
+      error "error: invalid instance: ${arguments[0]}"
+      abort "hint: Is the instance '${arguments[0]}' valid ?"
+    fi
+  fi
+}
+
+
+load_cluster_setting
+
+# Parse command line options.
+parse_options "$@"
+
+
+if [ ${options[attach]} -eq 1 ]; then
+  # Attach mode
+  attach_node "${options[fork_off]}" "${arguments[0]}"
+  if [ ${options[start]} -eq 1 ]; then
+    start_instance "${arguments[0]}"
+  fi
+  write_cluster_info
+elif [ ${options[detach]} -eq 1 ]; then
+  # Detach mode
+  detach_node "${arguments[0]}"
+  write_cluster_info
+elif [ ${options[analyze]} -eq 1 ]; then
+  write_cluster_info
+  show_replication_tree
+else
+  error "error: invalid operation"
+  abort "hint: Eather of --attach ,--detach and --analyze must be set"
+fi
+
+exit $?
+
+
+#=begin SUBCOMMAND
+#
+# cluster ctrl    Attach and detach nodes.
+#
+#=end SUBCOMMAND
+
+
+#=begin HELP
+#
+# Usage: pgenv cluster ctrl [-a|--attach|-d|--detach|-A|--analyze]
+#                           [-S|--start]
+#                           [-f|--fork-off <node>] <node>
+#
+# Attach a node to the cluster or detach nodes from the cluster.
+#
+#
+# SYNOPSIS
+#   pgenv cluster -D /path/to/cluster ctrl -a -S -f primary standby3
+#   pgenv cluster -D /path/to/cluster ctrl -d standby3
+#   pgenv cluster -D /path/to/cluster ctrl -A
+#
+#
+# OPTIONS
+#   -a, --attach
+#     Attach a node to the cluster.
+#
+#   -d, --detach
+#     Detach a node from the cluster.
+#
+#   -A, --analyze
+#     Save current cluster information and analyze replication tree.
+#
+#   -S, --start
+#     Used with --attach. After pg_basebackup, start the new instance.
+#
+#   -f, --fork-off <node>
+#     Fork off <node>.
+#
+#
+#=end HELP

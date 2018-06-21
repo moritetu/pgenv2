@@ -1,0 +1,5 @@
+HERE="$(cd -P -- "$(dirname -- "${BASH_SOURCE:-$0}")" && pwd -P)"
+export PATH="$HERE/default/bin":"$HERE/bin":"$PATH"
+export POSTGRES_HOME="$HERE/default"
+export PGLIB="$POSTGRES_HOME/lib"
+export LD_LIBRARY_PATH="$PGLIB:$LD_LIBRARY_PATH"

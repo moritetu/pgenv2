@@ -1,0 +1,119 @@
+#!/usr/bin/env bash
+
+set -eu
+
+source "$PGENV_LIBEXEC"/pgenv--load
+source "$PGENV_LIBEXEC"/pgenv--cluster-functions
+
+
+# Command line options
+declare -A options
+options=(
+  [all]=0
+  [opts]=""
+  [force]=0
+)
+
+
+# Arguments array
+arguments=()
+
+
+OLDPWD="$PWD"
+
+
+#: parse_options [arg ...]
+#:   Parse command line options.
+#:
+parse_options() {
+  local status=0
+
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      -a|--all)
+        options[all]=1
+        ;;
+      -o|--options)
+        shift
+        options[opts]="${options[opts]} $1"
+        ;;
+      -f|--force)
+        options[force]=1
+        ;;
+      -*)
+        abort "error: $(self): invalid option: $1"
+        ;;
+      *)
+        arguments[${#arguments[@]}]="$1"
+        ;;
+    esac
+    shift
+  done
+
+  if [ ${options[all]} -eq 0 ]; then
+    if [ ${#arguments[@]} -eq 0 ]; then
+      error "error: <instance> is not set"
+      abort "hint: please set <instance> or set -a option"
+    fi
+  fi
+}
+
+
+load_cluster_setting
+
+# Parse command line options.
+parse_options "$@"
+
+# Stop my cluster.
+if [ ${options[all]} -eq 1 ]; then
+  if [ ${options[force]} -eq 1 ]; then
+    stop_cluster
+  else
+    stop_all_instances
+  fi
+else
+  instance="" status=
+  for instance in ${arguments[@]}; do
+    if [ ${options[force]} -eq 1 ]; then
+      stop_instance "$instance" "${options[opts]}" || status=$?
+      test $status -ne 0 && log_warn "failed to stop instance: $instance"
+    else
+      stop_instance "$instance" "${options[opts]}"
+    fi
+  done
+fi
+
+exit $?
+
+
+#=begin SUBCOMMAND
+#
+# cluster stop    Stop cluster.
+#
+#=end SUBCOMMAND
+
+
+#=begin HELP
+#
+# Usage: pgenv cluster stop [-a|--all] [-o <options>] [-f|--force]  [<instance>...]
+#
+# Stop cluster.
+#
+#
+# SYNOPSIS
+#   pgenv cluster -D /path/to/cluster stop -a -f
+#   pgenv cluster -D /path/to/cluster stop s1
+#
+#
+# OPTIONS
+#   -a, --all
+#     Stop all instances.
+#
+#   -f, --force
+#     Even if failed to stop an instance, try to stop other instances.
+#
+#   -o, --options <opts>
+#     Options passed to 'pg_ctl stop' command.
+#
+#
+#=end HELP

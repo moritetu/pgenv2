@@ -1,0 +1,69 @@
+#!/usr/bin/env bash
+set -eu
+
+HERE="$(cd -P -- $(dirname -- "${BASH_SOURCE:-$0}") && pwd -P)"
+
+export PGENV_ROOT="$(dirname "$HERE")"
+export PGENV_LIBEXEC="$PGENV_ROOT/libexec"
+export PATH="$PGENV_LIBEXEC":"$PGENV_ROOT/bin":"$PATH"
+source "$PGENV_LIBEXEC/pgenv--load"
+
+export PGENV_LOG_LEVEL="${PGENV_LOG_LEVEL:-2}"
+
+# Check whether the specified command is valid.
+pgenv_exec_command() {
+  local command_name="$1"
+  local pgenv_exec_command_name="pgenv-exec-${command_name}"
+  local exec_command="$(command -v "${pgenv_exec_command_name}" ||:)"
+  [ -z "$exec_command" ] && abort "error: invalid command: $command_name"
+  echo $exec_command
+}
+
+while [ $# -gt 0 ]; do
+  COMMAND="$1"
+  case "$COMMAND" in
+    -v | --version ) pgenv-version && exit ;;
+    -h | --help )    pgenv-help && exit    ;;
+    --no-color)
+      export PGENV_NOCOLOR=1
+      ;;
+    --debug)
+      export PGENV_LOG_FORMAT='$(printf "(%s)" "$(basename -- "${BASH_SOURCE[1]}"):${BASH_LINENO[0]}") - $@'
+      ;;
+    --d[0-4])
+      export PGENV_LOG_LEVEL="${1:3:1}"
+      ;;
+    *)
+      # If the command equals "help", show usage of the command.
+      # pgenv help <command>
+      if [ "$COMMAND" = "help" ]; then
+        shift
+        [ -z "${1:-}" ] && pgenv-help && exit
+        get_comment_block "$(pgenv_exec_command "$1")" "HELP"
+        exit
+      fi
+
+      # If the command equals "config", show basic configuration of baut.
+      if [ "$COMMAND" = "config" ]; then
+        pgenv-config show
+        exit
+      fi
+
+      exec_command="$(pgenv_exec_command "$COMMAND")"
+      shift
+      case "${1:-}" in
+        -h | --help )
+          get_comment_block "$exec_command" "HELP"
+          exit
+          ;;
+        *)
+          # Execute a command.
+          export PGENV_EXEC_COMMAND="$COMMAND"
+          exec "$exec_command" "$@"
+      esac
+  esac
+  shift
+done
+
+# No argument, show usage and abort.
+pgenv-help -p | abort

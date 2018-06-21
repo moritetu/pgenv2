@@ -1,0 +1,106 @@
+#!/usr/bin/env bash
+
+set -eu
+
+source "$PGENV_LIBEXEC"/pgenv--load
+
+# Command line options
+declare -A options
+options=(
+  [refresh]=0
+)
+
+# Arguments array
+arguments=()
+
+# The file cache versions.
+pg_directories_file="$PGENV_ROOT/available_versions"
+
+
+#: parse_options [arg ...]
+#:   Parse command line options.
+#:
+parse_options() {
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --refresh)
+        options[refresh]=1
+        ;;
+      -*)
+        abort "error: $(self): invalid option: $1"
+        ;;
+      *)
+        arguments[${#arguments[@]}]="$1"
+        ;;
+    esac
+    shift
+  done
+}
+
+#: show_available_version
+#:   Show available versions.
+#:
+show_available_version() {
+  cat "$pg_directories_file" | sed -e 's/^v//' | sort -n
+}
+
+# Parse command line options.
+parse_options "$@"
+
+# If versions file already exists, show it.
+if [ -f "$pg_directories_file" ] && [ -s "$pg_directories_file" ]; then
+  log_trace "found '$pg_directories_file'"
+  if [ "${options[refresh]}" != "1" ]; then
+    show_available_version
+    exit
+  fi
+else
+  log_trace "not found '$pg_directories_file'"
+fi
+
+# Download version information from the official site.
+log_info "==> get version list from $PGENV_POSTGRESQL_SOURCE_DIRECTORY"
+log_trace "exec: curl -f $PGENV_POSTGRESQL_SOURCE_DIRECTORY"
+curlout="$(curl -f $PGENV_POSTGRESQL_SOURCE_DIRECTORY)"
+ret=$?
+if [ $ret -ne 0 ]; then
+  error "error: failed to download. status=$ret"
+  abort "hint: please check whether command 'curl' is available"
+fi
+
+# Cache version list.
+printf "%s" "$curlout"| grep -e 'v[[:digit:]][^"/<>]*' -o | sort | uniq > "$pg_directories_file"
+
+# Show versions.
+show_available_version
+
+exit $?
+
+
+#=begin COMMAND
+#
+# versions    Get available postgresql versions and show them.
+#
+#=end COMMAND
+
+#=begin HELP
+#
+# Usage: pgenv versions [--refresh]
+#
+# Get available postgresql versions and show them.
+#
+#
+# SYNOPSIS
+#   pgenv versions --refresh
+#
+# OPTIONS
+#   --refresh
+#     Clear cached and get versions newly.
+#
+# SHELL VARIABLES
+#
+#   - PGENV_POSTGRESQL_SOURCE_DIRECTORY
+#     pgenv gets available versions from this url.
+#
+#
+#=end HELP

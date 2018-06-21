@@ -1,0 +1,2 @@
+# '--prefix' or --enable-debug is set in pgenv.
+--with-libxml

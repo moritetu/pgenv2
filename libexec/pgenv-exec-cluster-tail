@@ -1,0 +1,146 @@
+#!/usr/bin/env bash
+
+set -eu
+
+source "$PGENV_LIBEXEC"/pgenv--load
+source "$PGENV_LIBEXEC"/pgenv--cluster-functions
+
+
+# Command line options
+declare -A options
+options=(
+  [all]=0
+  [all_logs]=0
+  [f]=0
+)
+
+
+# Arguments array
+arguments=()
+
+
+OLDPWD="$PWD"
+
+
+#: parse_options [arg ...]
+#:   Parse command line options.
+#:
+parse_options() {
+  local status=0
+
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      -a|--all)    options[all]=1      ;;
+      --all-logs)  options[all_logs]=1 ;;
+      -f)          options[f]=1        ;;
+      -*)
+        abort "error: $(self): invalid option: $1"
+        ;;
+      *)
+        arguments[${#arguments[@]}]="$1"
+        ;;
+    esac
+    shift
+  done
+
+  if [ ${options[all]} -eq 0 ]; then
+    if [ ${#arguments[@]} -eq 0 ]; then
+      error "error: <instance> is not set"
+      abort "hint: please set <instance> or set -a option"
+    fi
+  fi
+}
+
+
+#: tail_logs
+#:   Run tail command againt instance log files.
+#:
+tail_logs() {
+  local instances="$@"
+  local tail_options=""
+  local log_dir=""
+
+  if [ ${options[f]} -eq 1 ]; then
+    tail_options="-f"
+  fi
+
+  log_trace "==> version check"
+  if (( $(check_pg_version 10) )); then
+    log_trace "later than 10"
+    log_dir="pg_log"
+  else
+    log_trace "earlier than 10"
+    log_dir="log"
+  fi
+
+  (
+    cd "$PGENV_CLUSTER_ROOT"
+
+    local targets=()
+    local instance=
+
+    # We do tail only latest log.
+    for instance in ${instances[@]:-}; do
+      if [ ${options[all_logs]} -eq 1 ]; then
+        local logfile=
+        for logfile in $(ls "$instance/$log_dir"/*.log); do
+          targets[${#targets[@]}]="$logfile"
+        done
+      else
+        targets[${#targets[@]}]="$(ls -t "$instance/$log_dir"/*.log | head -1)"
+      fi
+    done
+
+    log_trace "==> target logs: ${targets[@]}"
+    eval tail $tail_options "${targets[@]}"
+  )
+}
+
+
+load_cluster_setting
+
+# Parse command line options.
+parse_options "$@"
+
+if [ ${options[all]} -eq 1 ]; then
+  tail_logs "$primary_server" "${all_standby_servers}"
+else
+  tail_logs "${arguments[@]}"
+fi
+
+
+exit $?
+
+
+#=begin SUBCOMMAND
+#
+# cluster tail    Tail logs.
+#
+#=end SUBCOMMAND
+
+
+#=begin HELP
+#
+# Usage: pgenv cluster tail [-a|--all] [-f] [--all-logs] [<instance>...]
+#
+# Do tail logs of instances in the cluster.
+#
+#
+# SYNOPSIS
+#   pgenv cluster -D /path/to/cluster tail -a -f
+#   pgenv cluster -D /path/to/cluster tail --all-logs -a
+#   pgenv cluster -D /path/to/cluster tail -f s1
+#
+#
+# OPTIONS
+#   -a, --all
+#     Tail all instance logs.
+#
+#   --all-logs
+#     Do tail all log files.
+#
+#   -f
+#     Run tail command with -f option.
+#
+#
+#=end HELP

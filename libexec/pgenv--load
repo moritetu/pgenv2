@@ -1,0 +1,897 @@
+#!/usr/bin/env bash
+
+# Load config
+source "$PGENV_LIBEXEC"/pgenv-config
+
+# We change shell options temporarily.
+e_= u_=
+[[ "$-" =~ e ]] && e_=1
+[[ "$-" =~ u ]] && u_=1
+
+set -eu
+
+#: Out
+
+#: error [string ...]
+#:   Write arguments to the standard error output.
+#: ex:
+#:   echo "error" | error
+#:   error "error"
+#:
+error() {
+  if [ $# -eq 0 ]; then cat -
+  else printf "%b\n" "$(text_color_alert "$*")"
+  fi
+} >&2
+
+#: abort [string ...]
+#:   Write arguments to the standard error output and exit with a status code '1'.
+#: ex:
+#:   echo "error" | abort
+#:   abort "error"
+#:
+abort() {
+  error "$@"
+  exit 1
+} >&2
+
+
+#: File
+
+
+#: __FILE__
+#:   Show the absolute path of the file in which __FILE__ is written.
+#:
+__FILE__() {
+  resolve_link "${BASH_SOURCE[1]}"
+}
+
+#: __DIR__
+#:   Show the absolute path of the file in which __DIR__ is written.
+#:
+__DIR__() {
+  dirname "$(resolve_link "${BASH_SOURCE[1]}")"
+}
+
+#: __LINE__
+#:   Show the number of the line in which __LINE__ is written.
+#:
+__LINE__() {
+  echo "${BASH_LINENO[0]}"
+}
+
+#: self
+#:   If 'self' is written in a function, return its function name.
+#:   Otherwise return the file name.
+#: ex: 'self' in function
+#:   function func() { self; }  => func
+#: ex: 'self' NOT in function, file sample.sh
+#:   self => sample.sh
+#:
+self() {
+  if [[ "${FUNCNAME[1]}" =~ main ]] || [[ "${FUNCNAME[1]}" =~ source ]]; then
+    if [ "${1:-}" = "-v" ]; then
+      basename "${BASH_SOURCE[1]}(${BASH_LINENO[0]})"
+    else
+      basename "${BASH_SOURCE[1]}"
+    fi
+  else
+    if [ "${1:-}" = "-v" ]; then
+      echo "$(basename "${BASH_SOURCE[1]}")#${FUNCNAME[1]}"
+    elif [ "${1:-}" = "-vv" ]; then
+      echo "$(basename "${BASH_SOURCE[1]}")#${FUNCNAME[1]}(${BASH_LINENO[0]})"
+    else
+      echo "${FUNCNAME[1]}"
+    fi
+  fi
+}
+
+
+#: Load
+
+
+declare -A __pgenv_loaded_path=()
+
+#: load <file> [arg ...]
+#:   Load the file. Even if the file had been already loaded, it will be loaded again.
+#:   If the file does not exist, abort.
+#: ex: load lib-string
+#:
+load() {
+  [ $# -eq 0 ] && abort "error: $(self -vv): <file> is required"
+  declare -r lib="$1"
+  local libpath=
+  local loadpath=
+  local key=
+  shift
+  if [ "${lib:0:1}" = "/" ]; then
+    if [ ! -e "$lib" ]; then
+      abort "error: $(self -vv): file not found '$lib'"
+    fi
+    libpath="$(resolve_link "$lib")"
+  else
+    while IFS= read loadpath; do
+      if [ -e "$loadpath/$lib" ]; then
+        libpath="$(resolve_link "$loadpath/$lib")"
+        break
+      fi
+    done < <(array_reverse "${PGENV_LOAD_PATH[@]}")
+    if [ -z "$libpath" ]; then
+      abort "error: $(self -vv): file not found '$lib', loadpath=${PGENV_LOAD_PATH[@]}"
+    fi
+  fi
+
+  log_trace "load: $lib"
+  declare -r libpath
+  source "$libpath" "$@"
+  if [ $? -ne 0 ]; then
+    abort "error: $(self -vv): failed to source '$lib'"
+  fi
+  __pgenv_loaded_path["$libpath"]=1
+}
+
+#: load_if_exists <file> [arg ...]
+#:   Load the file. Even if the file had been already loaded, it will be loaded again.
+#:   Even if the file do not exist, do not abort.
+#:   If failed to load the file, return 1.
+#:
+load_if_exists() {
+  [ $# -eq 0 ] && return 1
+  declare -r lib="$1"
+  local libpath=
+  local loadpath=
+  local key=
+  shift
+
+  if [ "${lib:0:1}" = "/" ]; then
+    if [ ! -e "$lib" ]; then
+      return 1
+    fi
+    libpath="$(resolve_link "$lib")"
+  else
+    while IFS= read loadpath; do
+      if [ -e "$loadpath/$lib" ]; then
+        libpath="$(resolve_link "$loadpath/$lib")"
+        break
+      fi
+    done < <(array_reverse "${PGEN_LOAD_PATH[@]}")
+    if [ -z "$libpath" ]; then
+      return 1
+    fi
+  fi
+
+  log_trace "load: $lib"
+  declare -r libpath
+  source "$libpath" "$@"
+  if [ $? -ne 0 ]; then
+    abort "error: $(self -vv): failed to source '$lib'"
+  fi
+  __pgenv_loaded_path["$libpath"]=1
+}
+
+#: loadable <file>
+#:
+#:
+loadable() {
+  [ $# -eq 0 ] && abort "error: $(self -vv): <file> is required"
+  declare -r lib="$1"
+  local libpath=
+  local loadpath=
+  local key=
+  shift
+  if [ "${lib:0:1}" = "/" ]; then
+    if [ ! -e "$lib" ]; then
+      return 1
+    else
+      return 0
+    fi
+  fi
+
+  while IFS= read loadpath; do
+    if [ -e "$loadpath/$lib" ]; then
+      libpath="$(resolve_link "$loadpath/$lib")"
+      break
+    fi
+  done < <(array_reverse "${PGENV_LOAD_PATH[@]}")
+  if [ -z "$libpath" ]; then
+      return 1
+  fi
+  true
+}
+
+#: require <file> [arg ...]
+#:   Load the file. If the file had been already loaded, it will NOT be loaded.
+#:   If the file do not exist, abort.
+#: ex: require lib-string
+#:
+require() {
+  [ $# -eq 0 ] && abort "error: $(self -vv): <file> is required"
+  declare -r lib="$1"
+  local libpath=
+  local loadpath=
+  local key=
+  shift
+
+  if [ "${lib:0:1}" = "/" ]; then
+    if [ ! -e "$lib" ]; then
+      abort "error: $(self -vv): file not found '$lib'"
+    fi
+    libpath="$(resolve_link "$lib")"
+  else
+    while IFS= read loadpath; do
+      if [ -e "$loadpath/$lib" ]; then
+        libpath="$(resolve_link "$loadpath/$lib")"
+        break
+      fi
+    done < <(array_reverse "${PGENV_LOAD_PATH[@]}")
+    if [ -z "$libpath" ]; then
+      abort "error: $(self -vv): file not found '$lib', loadpath=${PGENV_LOAD_PATH[@]}"
+    fi
+  fi
+
+  if [ -z "${__pgenv_loaded_path[$libpath]:-}" ]; then
+    log_trace "load: $lib"
+    source "$libpath" "$@"
+    if [ $? -ne 0 ]; then
+      abort "error: $(self -vv): failed to source '$lib'"
+    fi
+    __pgenv_loaded_path["$libpath"]=1
+  fi
+  true
+}
+
+
+#: Path
+
+
+#: resolve_link <file>
+#:   Resolve symbolic link and return its absolute path.
+#: ex: resolve_link "path/to/file"
+#:
+resolve_link() {
+  local filepath="$1"
+  local filename=""
+  (
+    while [ "$filepath" != "" ]; do
+      cd "$(dirname "$filepath")"
+      filename="$(basename "$filepath")"
+      filepath="$(readlink "$filename" ||:)"
+    done
+    echo "$(pwd -P)/$filename"
+  )
+}
+
+#: abs_dirname <path>
+#:   Return the absolute path of the specified path.
+#:
+abs_dirname() {
+  echo "$(cd -P -- "$(dirname -- "$1")" && pwd -P)"
+}
+
+#: push_load_path <path> [<path> ...]
+#:   Add paths to PGENV_LOAD_PATH.
+#:
+push_load_path() {
+  local p=
+  for p in "$@"; do
+    PGENV_LOAD_PATH["${#PGENV_LOAD_PATH[@]}"]="$p"
+  done
+}
+
+#: pop_load_path [<num>]
+#:   Remove paths from PGENV_LOAD_PATH.
+#:
+pop_load_path() {
+  local i="${1:-1}"
+  while [ $i -gt 0 ]; do
+    if [ ${#PGENV_LOAD_PATH[@]} -gt 0 ]; then
+      unset PGENV_LOAD_PATH[$((${#PGENV_LOAD_PATH[@]}-1))]
+    fi
+    ((i=i-1,1))
+  done
+}
+
+#: Log
+
+
+#: datetime
+#:   Show the result of 'date' command.
+#:
+datetime() {
+  date +"$PGENV_LOG_DATE_FORMAT"
+}
+
+#: log_trace [string ...]
+#:   Write arguments to the standard output when the log level includes trace.
+#:
+log_trace() {
+  if [ $PGENV_LOG_LEVEL -le 0 ]; then
+    println "$(text_color "$(datetime) [TRACE] $(eval echo "$PGENV_LOG_FORMAT")" 7 "" "")"
+  fi
+}
+
+#: log_debug [string ...]
+#:   Write arguments to the standard output when the log level includes debug.
+#:
+log_debug() {
+  if [ $PGENV_LOG_LEVEL -le 1 ]; then
+    println "$(text_color "$(datetime) [DEBUG] $(eval echo "$PGENV_LOG_FORMAT")" 7 "" "")"
+  fi
+}
+
+#: log_info [string ...]
+#:   Write arguments to the standard output when the log level includes info.
+#:
+log_info() {
+  if [ $PGENV_LOG_LEVEL -le 2 ]; then
+    println "$(datetime) [INFO] $(eval echo "$PGENV_LOG_FORMAT")"
+  fi
+}
+
+#: log_warn [string ...]
+#:   Write arguments to the standard error output when the log level includes warning.
+#:
+log_warn() {
+  if [ $PGENV_LOG_LEVEL -le 3 ]; then
+    println "$(text_color_warn "$(datetime) [WARN] $(eval echo "$PGENV_LOG_FORMAT")")" >&2
+  fi
+}
+
+#: log_error [string ...]
+#:   Write arguments to the standard error output when the log level includes error.
+#:
+log_error() {
+  if [ $PGENV_LOG_LEVEL -le 4 ]; then
+    println "$(text_color_alert "$(datetime) [ERROR] $(eval echo "$PGENV_LOG_FORMAT")")" >&2
+  fi
+}
+
+#: println_log [string ...]
+#:   Write arguments to the standard output with datetime.
+#:
+println_log() {
+  println "$(datetime) $@"
+}
+
+#: println_log [string ...]
+#:   Write arguments to the standard output.
+#:   Arguments are passed to printf command.
+#:
+println() {
+  printf "%b\n" "$@"
+}
+
+
+#: Text
+
+
+__pgenv_text_color=""
+
+#: text_color_on 3<foreground_color> 4<background_color> <attribute>
+#:   Set color on with the specified code number.
+#:
+text_color_on() {
+  local foreground_color="${1:-}"
+  local background_color="${2:-}"
+  local attribute="${3:-}"
+  local colorset=()
+  endpoint_is_terminal && {
+    [ -n "$foreground_color" ] && colorset[${colorset[@]:-0}]="3$foreground_color"
+    [ -n "$background_color" ] && colorset[${colorset[@]:-0}]="4$background_color"
+    [ -n "$attribute" ] && colorset[${colorset[@]:-0}]="$attribute"
+    __pgenv_text_color=""
+    if [ ${#colorset[@]} -gt 0 ]; then
+      __pgenv_text_color="$(IFS=";" ; echo "${colorset[*]}")"
+    fi
+    printf "\033[${__pgenv_text_color}m"
+  }
+}
+
+#: text_color_off
+#:   Set color off.
+#:
+text_color_off() {
+  __pgenv_text_color=
+  endpoint_is_terminal && {
+    printf "\033[m"
+  }
+}
+
+#: text_color <msg> 3<foreground_color> 4<background_color> <attribute>
+#:   Set color on with the specified code number.
+#:
+text_color() {
+  local msg="$1"
+  shift
+  text_color_on "$@"
+  printf "$msg"
+  text_color_off
+}
+
+#: text_color_default <msg>
+#:   Set default color.
+#: ex:
+#:   echo "hoge" | text_color_default
+#:   text_color_default "hoge"
+#:
+text_color_default() {
+  if [ $# -eq 0 ]; then
+    text_color_on 0 "" 1
+    cat -
+    text_color_off
+  else
+    text_color "$@" 0 "" 1
+  fi
+}
+
+#: text_color_alert <msg>
+#:   Set alert color.
+#: ex:
+#:   echo "error" | text_color_alert
+#:   text_color_alert "error"
+#:
+text_color_alert() {
+  if [ $# -eq 0 ]; then
+    text_color_on 1 "" 1
+    cat -
+    text_color_off
+  else
+    text_color "$@" 1 "" 1
+  fi
+}
+
+#: text_color_success <msg>
+#:   Set success color.
+#: ex:
+#:   echo "ok" | text_color_success
+#:   text_color_success "ok"
+#:
+text_color_success() {
+  if [ $# -eq 0 ]; then
+    text_color_on 2 "" 1
+    cat -
+    text_color_off
+  else
+    text_color "$@" 2 "" 1
+  fi
+}
+
+#: text_color_warn <msg>
+#:   Set warn color.
+#: ex:
+#:   echo "warning" | text_color_warn
+#:   text_color_warn "warning"
+#:
+text_color_warn() {
+  if [ $# -eq 0 ]; then
+    text_color_on 3 "" 1
+    cat -
+    text_color_off
+  else
+    text_color "$@" 3 "" 1
+  fi
+}
+
+
+#: endpoint_is_terminal
+#:   Check whether endpoint is terminal.
+#:
+endpoint_is_terminal() {
+  if [ ${PGENV_NOCOLOR:-0} -eq 1 ]; then
+    return 1
+  else
+    test -t 1 -o -t 2
+  fi
+}
+
+#: Comment
+
+
+#: get_comment_block <file> <ident>
+#:   Get the comment block marked by the ident in the file.
+#: ex: Extract IDENT block.
+#:     In the file 'text.txt':
+#:        #=begin <IDENT>
+#:        # This is a comment.
+#:        #=end <IDENT>
+#:     get_comment_block 'text.txt' "IDENT"    => This is a comment.
+#:
+get_comment_block() {
+  local filepath="$1"
+  local ident="$2"
+  if [ -f "$filepath" ]; then
+    sed -n "
+      /^#=begin ${ident}$/,/^#=end ${ident}$/ {
+        /^#=begin .*$/d
+        /^#=end .*$/d
+        s/^#$//
+        s/^# \{0,1\}//
+        p
+      }
+    " "$filepath" | sed -e "1 {
+        /^$/d
+      }
+      $ {
+        /^$/d
+      }"
+  fi
+}
+
+#: self_comment_block <ident>
+#:   Get the comment block marked by the ident in its own file.
+#: ex: self_comment_block "IDENT"
+#:
+self_comment_block() {
+  local ident="$1"
+  get_comment_block "$(resolve_link "${BASH_SOURCE[1]}")" "$ident"
+}
+
+#: get_comment_line <file>
+#:   Get the comment lines in the file.
+#:   The lines start with '#:' are returned.
+#: ex: get_comment_line "/path/to/test.sh"
+#:
+get_comment_line() {
+  local filepath="$1"
+  if [ -f "$filepath" ]; then
+    sed -n "
+      /^ *#:/ {
+        s/^ *#: \{0,1\}//
+        p
+      }
+    " "$filepath"
+  fi
+}
+
+#: self_comment_line
+#:   Get the comment lines in its own file.
+#: ex: self_comment_line
+#:
+self_comment_line() {
+  get_comment_line "$(resolve_link "${BASH_SOURCE[1]}")"
+}
+
+
+#: Shell options
+
+
+declare -a __pgenv_setopts_stack=()
+
+#: enable_setopt <characters>
+#:   Set shell options on.
+#: ex: enable_setopt "eu"
+#:
+enable_setopt() {
+  local optchars="$1"
+  local last_setopts="$-"
+  set -$optchars && __pgenv_setopts_stack[${#__pgenv_setopts_stack[@]}]="$last_setopts"
+}
+
+#: disable_setopt <characters>
+#:   Set shell options off.
+#: ex: disable_setopt "eu"
+#:
+disable_setopt() {
+  local optchars="$1"
+  local last_setopts="$-"
+  set +$optchars && __pgenv_setopts_stack[${#__pgenv_setopts_stack[@]}]="$last_setopts"
+}
+
+#: pop_setopt
+#:   Restore last set options.
+#: ex: echo "$-"  => e
+#:     enable_setop "u"
+#:     pop_setopt
+#:     echo "$-"  => e
+#:
+pop_setopt() {
+  local last_index=$((${#__pgenv_setopts_stack[@]} - 1))
+  local last_setopts="${__pgenv_setopts_stack[$last_index]}"
+  local current_setopts="$-"
+  if [ $last_index -ge 0 ]; then
+    # At first, we reset current options...
+    while IFS= read -n1 char; do
+      set +$char
+    done < <(printf "%s" "$current_setopts")
+    # Next, we restore last options.
+    while IFS= read -n1 char; do
+      set -$char
+    done < <(printf "%s" "$last_setopts")
+    unset __pgenv_setopts_stack[$last_index]
+  fi
+}
+
+
+#: String
+
+
+#: seq_char <string>
+#:   Return one character at a time.
+#: ex: sort a string
+#:     seq_char "abc" | sort -r | xargs printf "%s"  => cba
+#:
+seq_char() {
+  local text="$1"
+  while IFS= read -n1 char; do
+    echo "$char"
+  done < <(printf "%s" "$text")
+}
+
+#: plural <word> <num>
+#:   Add 's' at the end of the specified word.
+#: ex: printf "$(plural "%d file" 2)" => 2 files
+plural() {
+  local label="$1"
+  local num="${2:-0}"
+  if [ $num -gt 1 ]; then
+    label+="s"
+  fi
+  printf "$label" "$num"
+}
+
+
+#: Hash
+
+
+declare -A __pgenv_hashmap=()
+
+# We ordinally use md5.
+for pgenv_hash in md5sum md5 openssl; do
+  if type $pgenv_hash &>/dev/null; then
+    if [ "$pgenv_hash" = openssl ]; then
+      pgenv_hash="$pgenv_hash md5"
+    fi
+    break
+  fi
+done
+
+if [ -z "$pgenv_hash" ]; then
+  #: hexadecimal_key [string ...]
+  #:   Convert characters to decimal code.
+  #: ex: hexadecimal_key "HELLO"    => 48454c4c4f
+  hexadecimal_key() {
+    local string="$*"
+    local char
+    local text="H"
+    if [ $# -eq 0 ]; then
+      while IFS= read -n1 char; do
+        if [[ "$char" =~ [[:alnum:]] ]]; then
+          text+="$char"
+        else
+          text+="$(printf "%x" "$(printf "%d" "'$char")")"
+        fi
+      done < <(cat -)
+    else
+      for char in $(seq_char "$string"); do
+        if [[ "$char" =~ [[:alnum:]] ]]; then
+          text+="$char"
+        else
+          text+="$(printf "%x" "$(printf "%d" "'$char")")"
+        fi
+      done
+    fi
+  }
+  pgenv_hash=hexadecimal_key
+  log_warn "not found hash command in your environment. check if the following commands exist: 'md5', 'md5sum', 'openssl md5'"
+fi
+
+readonly pgenv_hash
+
+#: hash_get <key> [<key> ...]
+#:   Get the value with the specified keys.
+#: ex: hash_get "my"  => value
+#:
+hash_get() {
+  eval printf '${__pgenv_hashmap["%s"]:-""}' "$*"
+}
+
+#: hash_set <key> [<key> ...] <value>
+#:   Set the value with the specified keys.
+#: ex: hash_set "key" "value"
+#:
+hash_set() {
+  local args=("$@")
+  local argnum=$#
+  local value_index=$((argnum - 1))
+  local key=(${args[@]:0:$value_index})
+  local value="${args[@]:$value_index:1}"
+  eval printf '__pgenv_hashmap["%s"]="$value"' "${key[*]}"
+}
+
+#: hash_delete <key> [<key> ...]
+#:   Delete the value with the specified keys.
+#:
+hash_delete() {
+  unset __pgenv_hashmap["$*"] ||:
+}
+
+
+#: Array
+
+
+#: array_reverse [arg ...]
+#:   Reverse array elements.
+#: ex: declare -a reversed_array=( $(array_reverse "$@") )
+#:
+array_reverse() {
+  local element
+  local arrays=("$@")
+  local results=()
+  local count=${#arrays[@]}
+  while [ $count -gt 0 ]; do
+    local idx=$((count - 1))
+    results[${#results[@]}]="${arrays[$idx]}"
+    ((count--,1))
+  done
+  printf "%s\n" "${results[@]}"
+}
+
+
+#: Trap
+
+
+declare -A __pgenv_enable_trap=()
+
+
+#: add_trap_callback <signame> <command>
+#:   Add the callback called when signal <signame> was sent.
+#:
+add_trap_callback() {
+  local signame="$1"
+  shift
+  local trap_command="$@"
+  local last_index="$(hash_get "trap_$signame")"
+  [ -z "$last_index" ] && last_index=0
+  ((last_index+=1))
+  hash_set "trap_$signame" "$last_index" "$trap_command"
+  hash_set "trap_${signame}" "$last_index"
+  __pgenv_enable_trap["$signame"]=1
+}
+
+#: add_trap_commands <signame> <command>
+#:   Add commands called when signal <signame> was sent.
+#:
+add_trap_commands() {
+  local signame="$1"
+  shift
+  local trap_commands=":$@"
+  local last_index="$(hash_get "trap_$signame")"
+  [ -z "$last_index" ] && last_index=0
+  ((last_index+=1))
+  hash_set "trap_$signame" "$last_index" "$trap_commands"
+  hash_set "trap_${signame}" "$last_index"
+  __pgenv_enable_trap["$signame"]=1
+}
+
+
+#: _pgenv_invoke_trap_callback <signame>
+#:   Invoke functions of the callback chain.
+#:
+_pgenv_invoke_trap_callback() {
+  declare -r pgenv_trap_exit_status="$?"
+  local signame="$1"
+  if [ "${__pgenv_enable_trap[$signame]:-0}" != "1" ]; then
+    return $pgenv_trap_exit_status
+  fi
+
+  local size="$(hash_get "trap_$signame")"
+  if [ -z "$size" ]; then
+    return $pgenv_trap_exit_status
+  fi
+  local i=$size
+  local callback trap_commands
+  log_trace "==> invoke trap callback: $signame, status=$pgenv_trap_exit_status"
+  while [ $i -gt 0 ]; do
+    callback="$(hash_get "trap_$signame" "$i")"
+    if [ ! -z "$callback" ]; then
+      if [ "${callback:0:1}" != ":" ]; then
+        log_trace "$i: $callback"
+        $callback || log_error "failed to execute callback of '$signame': $callback"
+      else
+        trap_commands="${callback:1}"
+        log_trace "$i: $trap_commands"
+        eval $(echo "$trap_commands") || log_error "failed to execute trap commands of '$signame': $trap_commands"
+      fi
+    fi
+    ((i-=1,1))
+  done
+  return $pgenv_trap_exit_status
+}
+
+#: reset_trap_callback [<signame> ...]
+#:   Delete callbacks with the specified signame.
+#:
+reset_trap_callback() {
+  local signals=("${!__pgenv_enable_trap[@]}")
+  if [ $# -ne 0 ]; then
+    signals=("$@")
+  else
+    __pgenv_enable_trap=()
+  fi
+  for signame in "${signals[@]}"; do
+    local size="$(hash_get "trap_$signame")"
+    hash_delete "trap_$signame"
+    if [ -n "$size" ]; then
+      while [ $size -gt 0 ]; do
+        hash_delete "trap_${signame}" "$size"
+        ((size-=1,1))
+      done
+    fi
+    unset __pgenv_enable_trap["$signame"]
+  done
+}
+
+#: register_trap_callback [<signame> ...]
+#:   Register trap callbacks with the specified signame.
+#:   The interface of the callback is the following:
+#:     ex: _pgenv_invoke_trap_callback <signal>
+#:
+#:   *Notice*
+#:     This function overwrites the existing trap callback.
+#:     If you define your callback scripts with built-in 'trap' command,
+#:     callbacks managed by pgenv are not available.
+#:
+register_trap_callback() {
+  local signals=("${!__pgenv_enable_trap[@]}")
+  if [ $# -ne 0 ]; then
+    signals=("$@")
+  fi
+  for signame in "${signals[@]}"; do
+    if [ -z "${__pgenv_enable_trap[$signame]:-}" ]; then
+      continue
+    fi
+    if [ "${__pgenv_enable_trap[$signame]:-0}" = "1" ]; then
+      trap "_pgenv_invoke_trap_callback \"$signame\"" "$signame"
+    fi
+  done
+}
+
+#: register_trap_callback [<signame> ...]
+#:   Unregister trap callbacks with the specified signame.
+#:
+unregister_trap_callback() {
+ local signals=("${!__pgenv_enable_trap[@]}")
+  if [ $# -ne 0 ]; then
+    signals=("$@")
+  fi
+  for signame in "${signals[@]}"; do
+    if [ -z "${__pgenv_enable_trap[$signame]:-}" ]; then
+      continue
+    fi
+    reset_trap_callback "$signame"
+    trap - "$signame"
+  done
+}
+
+#: enable_trap <signame> [<signame> ...]
+#:   Enable trap with the specified signal name.
+#: ex: enable_trap "EXIT"
+#:
+enable_trap() {
+  for signame in "$@"; do
+    if [ -n "${__pgenv_enable_trap[$signame]:-}" ]; then
+       __pgenv_enable_trap["$signame"]=1
+    fi
+  done
+}
+
+#: disable_trap <signame> [<signame> ...]
+#:   Disable trap with the specified signal name.
+#:   But traps added with add_trap_callback function will remain.
+#:   If you want to be enable the specified signal again, you can call 'enable_trap'.
+#: ex: disable_trap "EXIT" "ERR"
+#:
+disable_trap() {
+  for signame in "$@"; do
+    if [ -n "${__pgenv_enable_trap[$signame]:-}" ]; then
+       __pgenv_enable_trap["$signame"]=0
+    fi
+  done
+}
+
+
+[ -z "$e_" ] && set +e
+[ -z "$u_" ] && set +u
+unset e_ u_
+
+:

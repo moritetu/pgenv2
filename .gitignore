@@ -1,0 +1,12 @@
+/versions/*
+/sources/*
+/archive/*
+/logs/*
+!.gitkeep
+/default
+
+available_versions
+configure_options-*
+
+.DS_Store
+.vagrant

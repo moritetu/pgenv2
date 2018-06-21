@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+
+set -eu
+
+source "$PGENV_LIBEXEC"/pgenv--load
+
+basename -- "$(readlink "$PGENV_ROOT/$PGENV_DEFAULT_LINK")"
+
+exit $?
+
+
+#=begin COMMAND
+#
+# current     Show current version.
+#
+#=end COMMAND
+
+#=begin HELP
+#
+# Usage: pgenv current
+#
+# Show current version.
+#
+#
+# SYNOPSIS
+#   pgenv current
+#
+#
+#=end HELP

@@ -1,0 +1,160 @@
+#!/usr/bin/env bash
+
+set -eu
+
+source "$PGENV_LIBEXEC"/pgenv--load
+
+# Command line options
+declare -A options
+options=(
+  [source]=0
+  [bin]=0
+  [lib]=0
+  [include]=0
+  [share]=0
+  [version]=""
+)
+
+# Arguments array
+arguments=()
+
+
+#: parse_options [arg ...]
+#:   Parse command line options.
+#:
+parse_options() {
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --source)    options[source]=1   ;;
+      --bin)       options[bin]=1      ;;
+      --lib)       options[lib]=1      ;;
+      --include)   options[include]=1  ;;
+      --share)     options[share]=1    ;;
+      -v|--version)
+        shift
+        options[version]="$1"
+        ;;
+      -*)
+        abort "error: $(self): invalid option: $1"
+        ;;
+      *)
+        arguments=($@)
+        break
+        ;;
+    esac
+    shift
+  done
+}
+
+
+#: show_prefix_and_run
+#:   Show path of the current context and execute commands if any.
+#:
+show_prefix_and_run() {
+
+  # Change working directory.
+  cd "$PGENV_ROOT"
+
+  local version_name=""
+  if [ -z "${options[version]}" ]; then
+    # Nothing to do.
+    if [ ! -h "$PGENV_DEFAULT_LINK" ]; then
+      log_trace "no version"
+      exit 0
+    fi
+    version_name="$(basename -- "$(cd -P -- "$PGENV_DEFAULT_LINK" && pwd -P)")"
+  else
+    version_name="${options[version]}"
+  fi
+
+
+  if [ ${options[source]} -eq 1 ] && [ -e "$PGENV_SOURCE_DIR"/"$version_name" ]; then
+    (
+      cd "$PGENV_SOURCE_DIR"/"$version_name"
+      if [ ${#arguments[@]} -gt 0 ]; then
+        eval "${arguments[@]}"
+      else
+        pwd -P
+      fi
+    )
+    exit 0
+  fi
+
+  (
+    cd -P -- "$PGENV_VERSIONS_DIR/$version_name" 2> /dev/null \
+      || abort "error: $version_name is invalid.\nhint: check 'pgenv list'"
+
+    local error_message="error: refer invalid version or version link is broken.\n"
+    error_message="${error_message}hint: check '$PGENV_ROOT/$PGENV_DEFAULT_LINK'"
+
+    if [ ${options[bin]} -eq 1 ]; then
+      cd bin || abort "$error_message"
+    elif [ ${options[lib]} -eq 1 ]; then
+      cd lib || abort "$error_message"
+    elif [ ${options[include]} -eq 1 ]; then
+      cd include || abort "$error_message"
+    elif [ ${options[share]} -eq 1 ]; then
+      cd share || abort "$error_message"
+    fi
+
+    if [ ${#arguments[@]} -gt 0 ]; then
+      log_trace "==> eval ${arguments[@]}"
+      eval "${arguments[@]}"
+    else
+      pwd -P
+    fi
+  )
+}
+
+# Parse command line options.
+parse_options "$@"
+
+# Show prefix and execute commands if any.
+show_prefix_and_run
+
+exit $?
+
+
+#=begin COMMAND
+#
+# prefix      Show path to current postgresql.
+#
+#=end COMMAND
+
+#=begin HELP
+#
+# Usage: pgenv prefix [--source|--bin|--lib|--include|--share] [-v|--version <version>]
+#                     [<command>]
+#
+# Show path to current postgresql.
+# And also change the directory and execute commands.
+#
+#
+# SYNOPSIS
+#   pgenv prefix
+#   $(pgenv prefix --bin)/initdb pgdata
+#   pgenv prefix --source
+#   pgenv prefix --bin initdb $PWD/foo
+#   pgenv prefix --share ls -l postgresql/extension
+#
+# OPTIONS
+#   --bin
+#     Show path to the current version bin directory.
+#
+#   --lib
+#     Show path to the current version lib directory.
+#
+#   --include
+#     Show path to the current version include directory.
+#
+#   --share
+#     Show path to the current version share directory.
+#
+#   --source
+#     Show path to the current version source directory.
+#
+#   -v, --version <version>
+#     Switch prefix context to the context of <version> temporarily.
+#
+#
+#=end HELP

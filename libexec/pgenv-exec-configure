@@ -1,0 +1,165 @@
+#!/usr/bin/env bash
+
+set -eu
+
+source "$PGENV_LIBEXEC"/pgenv--load
+
+# Command line options
+declare -A options
+options=(
+  [edit]=0
+  [list]=0
+  [local]=0
+  [global]=0
+  [default]=0
+)
+
+# Arguments array
+arguments=()
+
+# Configure options used by default
+default_configure_options_file="$PGENV_ROOT/configure_options"
+
+# Local configure options.
+local_configure_options_file="$PWD/.pgenv_configure_opts"
+
+# Version
+pg_configure_version=
+
+# Default editor
+EDITOR="${EDITOR:-vi}"
+
+
+#: parse_options [arg ...]
+#:   Parse command line options.
+#:
+parse_options() {
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      -e|--edit)    options[edit]=1       ;;
+      -l|--list)    options[list]=1       ;;
+      --local)      options[local]=1      ;;
+      --global)     options[global]=1     ;;
+      --default)    options[default]=1    ;;
+      -*)
+        abort "error: $(self): invalid option: $1"
+        ;;
+      *)
+        arguments[${#arguments[@]}]="$1"
+        ;;
+    esac
+    shift
+  done
+
+  if [ ${#arguments[@]} -eq 0 ]; then
+    pg_configure_version="$(basename -- "$(readlink  "$PGENV_ROOT"/"$PGENV_DEFAULT_LINK")")"
+  else
+    pg_configure_version="${arguments[0]}"
+  fi
+
+  if [ ${options[edit]} -eq 1 ] && [ ${options[list]} -eq 1 ]; then
+    abort "error: Eather one of --edit and --list must be set"
+  fi
+
+  if [ ${options[global]} -eq 1 ] && [ ${options[local]} -eq 1 ] && [ ${options[default]} -eq 1 ]; then
+    abort "error: Eather one of --global, --local and --default must be set"
+  fi
+}
+
+
+#: edit_configure_options
+#:   Edit default configure options.
+#:
+edit_configure_options() {
+  if [ ${options[local]} -eq 1 ]; then
+    $EDITOR "$local_configure_options_file"
+  elif [ ${options[global]} -eq 1 ]; then
+    $EDITOR "$PGENV_ROOT/configure_options-${pg_configure_version}"
+  elif [ ${options[default]} -eq 1 ]; then
+    if [ -f "$default_configure_options_file" ]; then
+      $EDITOR "$default_configure_options_file"
+    fi
+  else
+    $EDITOR "$PGENV_ROOT/configure_options-${pg_configure_version}"
+  fi
+  :
+}
+
+
+#: show_configure_options
+#:   Show configure options.
+#:
+show_configure_options() {
+  if [ ${options[local]} -eq 1 ]; then
+    if [ -f "$local_configure_options_file" ]; then
+       cat "$local_configure_options_file"
+    fi
+  elif [ ${options[global]} -eq 1 ]; then
+    local version_configure="$PGENV_ROOT/configure_options-${pg_configure_version}"
+    if [ -f "$version_configure" ]; then
+      cat "$version_configure"
+    fi
+  elif [ ${options[default]} -eq 1 ]; then
+    if [ -f "$default_configure_options_file" ]; then
+      cat "$default_configure_options_file"
+    fi
+  else
+    local version_configure="$PGENV_ROOT/configure_options-${pg_configure_version}"
+    if [ -f "$version_configure" ]; then
+      cat "$version_configure"
+    fi
+  fi
+  :
+}
+
+
+# Parse command line options.
+parse_options "$@"
+
+if [ ${options[list]} -eq 1 ]; then
+  show_configure_options
+elif [ ${options[edit]} -eq 1 ]; then
+  edit_configure_options
+fi
+
+exit $?
+
+
+#=begin COMMAND
+#
+# configure   Edit or show configure options.
+#
+#=end COMMAND
+
+#=begin HELP
+#
+# Usage: pgenv configure [-e|--edit|-l|--list] [--local|--global|--default] [<version>]
+#
+# Edit or show configure options.
+#
+#
+# SYNOPSIS
+#   pgenv configure -e --global
+#   pgenv configure -e --global 10.3
+#   pgenv configure -e --local
+#   pgenv configure -e --default
+#   pgenv configure -l --default
+#
+# OPTIONS
+#   -e, --edit
+#     Edit configure options.
+#
+#   -l, --list
+#     Show configure options.
+#
+#   --local
+#     Local configure options. Local file is '.pgenv_configure_options' in current directory.
+#
+#   --global
+#     Global configure options of current context. The file is $PGENV_ROOT/configure_options-<version>.
+#
+#   --default
+#     Default configure options. Global file is $PGENV_ROOT/configure_options.
+#
+#
+#=end HELP

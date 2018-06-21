@@ -1,0 +1,86 @@
+#!/usr/bin/env bash
+
+set -eu
+
+source "$PGENV_LIBEXEC"/pgenv--load
+
+#: pgenv_pretty_usage
+#:   Print pretty usage.
+#:
+pgenv_pretty_usage() {
+  cat<<EOS
+Usage: pgenv [-v] [-h] [--no-color] [--d[0-4]] <command> [<args>]
+EOS
+}
+
+#: pgenv_help
+#:   Print detailed usage.
+#:
+pgenv_help() {
+  cat<<DETAIL
+
+OPTIONS
+  -v, --version       Show version.
+  -h, --help          Show usage.
+  --no-color          Disable output coloring.
+  --d[0-4]            Set log level to TRACE(0), DEBUG(1), INFO(2), WARN(3), ERROR(4)
+  --debug             Debug output.
+
+COMMANDS
+$(collect_command_description)
+
+Show more available information about a specific command.
+'pgenv <command> [-h|--help]'
+
+EXAMPLE
+  1. Check available versions.
+    $ pgenv versions
+
+  2. Install a version.
+    $ pgenv install 10.3
+
+  3. Set default context.
+    $ pgenv global 10.3
+
+  4. Execute command.
+    $ initdb pgdata
+
+DETAIL
+}
+
+#: pgenv_usage
+#:   Print full usage.
+#:
+pgenv_usage() {
+  pgenv_pretty_usage
+  pgenv_help
+}
+
+#: collect_command_description
+#:   Collect COMMAND block in the command files and print.
+#:
+collect_command_description() {
+  local format="${1:-  %b\n}"
+  local line=
+  shopt -s nullglob
+  for command_path in "$PGENV_LIBEXEC"/pgenv-exec-*; do
+    while IFS= read -r line; do
+      printf "$format" "$line"
+    done < <(get_comment_block "$command_path" "COMMAND")
+  done
+  shopt -u nullglob
+}
+
+for arg in "$@"; do
+  case "$arg" in
+    -h | --help)
+      pgenv_help && exit
+      ;;
+    -p | --pretty)
+      pgenv_pretty_usage && exit
+      ;;
+  esac
+done
+
+pgenv_usage
+exit

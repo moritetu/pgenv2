@@ -1,0 +1,156 @@
+#!/usr/bin/env bash
+
+set -eu
+
+source "$PGENV_LIBEXEC"/pgenv--load
+
+# Command line options
+declare -A options
+options=(
+  [D]=""
+  [help]=0
+)
+
+# Cluster root directory
+export PGENV_CLUSTER_ROOT="$(resolve_link "${PGENV_CLUSTER_ROOT:-}")"
+
+# Cluster configuration
+export PGENV_CLUSTER_CONFIG="cluster_config.sh"
+
+
+# Arguments array
+arguments=()
+
+
+
+#: parse_options [arg ...]
+#:   Parse command line options.
+#:
+parse_options() {
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      -D)
+        shift
+        options[D]="$1"
+        ;;
+      -h|--help)
+        options[help]=1
+        ;;
+      *)
+        arguments[${#arguments[@]}]="$1"
+        ;;
+    esac
+    shift
+  done
+
+  if [ ${#arguments[@]} -eq 0 ]; then
+    usage_and_abort
+  fi
+}
+
+
+#: pgenv_exec_command
+#:   Check whether the specified command is valid.
+#:
+pgenv_exec_command() {
+  local command_name="$1"
+  local exec_command="$(command -v "${command_name}" ||:)"
+  [ -z "$exec_command" ] && abort "error: invalid command: $command_name"
+  echo $exec_command
+}
+
+
+#: usage_and_exit
+#:   Show usage and abort.
+#:
+usage_and_abort() {
+  error "error: <command> is empty."
+  abort "hint: cluster -D <clusterdir> [ setup | start | stop | status | ctrl | tail ] "
+}
+
+
+# Parse command line options.
+parse_options "$@"
+
+# Cluster command
+pg_cluster_command="pgenv-exec-cluster-${arguments[0]}"
+
+# If help option, show usage end exit.
+if [ ${options[help]} -eq 1 ]; then
+  get_comment_block "$(pgenv_exec_command "$pg_cluster_command")" "HELP"
+  exit
+fi
+
+# Pass env PGENV_CLUSTER_ROOT to the sub command.
+if [ -n "${options[D]}" ]; then
+  export PGENV_CLUSTER_ROOT="$(resolve_link "${options[D]}")"
+fi
+
+# This env is required.
+if [ -z "$PGENV_CLUSTER_ROOT" ]; then
+  error "error: cluster directory is not set."
+  abort "hint: -D <dir> or PGENV_CLUSTER_ROOT=<dir>"
+fi
+
+case ${arguments[0]:-""} in
+  setup)
+    if [ -d "$PGENV_CLUSTER_ROOT" ]; then
+      error "error: '$PGENV_CLUSTER_ROOT' already exists."
+      abort "hint: pass other directory or remove it before setup."
+    fi
+    ;;
+  start|stop|status|ctrr|tail)
+    (
+      if [ ! -f "$PGENV_CLUSTER_ROOT"/"$PGENV_CLUSTER_CONFIG" ]; then
+        error "error: '$PGENV_CLUSTER_ROOT' does not look like a cluster directory."
+        abort "hint: '$PGENV_CLUSTER_CONFIG' does not exist under '$PGENV_CLUSTER_ROOT'."
+      fi
+    )
+    ;;
+  *)
+    usage_and_abort
+    ;;
+esac
+
+
+# Remove sub command name.
+unset -v arguments[0]
+
+# Execute sub command.
+exec "$pg_cluster_command" "${arguments[@]}"
+
+
+#=begin COMMAND
+#
+# cluster     Cluster manager.
+#
+#=end COMMAND
+
+#=begin HELP
+#
+# Usage: pgenv cluster [OPTIONS] <SUBCOMMAND> [<args>]
+#
+# Cluster manager.
+#
+#
+# SUBCOMMAND
+#   setup      Setup a cluster
+#   start      Start cluster
+#   stop       Stop cluster
+#   status     Show cluster status
+#   ctrl       Add or remove node from cluster
+#   tail       Tail logs.
+#
+# OPTIONS
+#   -D <directory>
+#     Cluster root directory.
+#
+# SHELL VARIABLES
+#   - PGENV_CLUSTER_ROOT
+#     Cluster root directory. If this variable is set, -D option can be omitted.
+#
+#   - PGENV_CLUSTER_CONFIG
+#     The file where cluster information is stored.
+#
+#
+#=end HELP

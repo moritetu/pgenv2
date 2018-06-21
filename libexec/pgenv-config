@@ -1,0 +1,121 @@
+#!/usr/bin/env bash
+
+#:@PGENV_LOG_LEVEL
+#: Default log level.
+#:   0:DEBUG 1:INFO 2:WARN 3:ERROR
+: ${PGENV_LOG_LEVEL:=2}
+
+
+#:@PGENV_LOG_DATE_FORMAT
+#: Date format of log output.
+#:   ex: log_debug "debug" ==> 2017-09-01 12:12:00
+: ${PGENV_LOG_DATE_FORMAT:='%Y-%m-%d %H:%M:%S'}
+
+
+#:@PGENV_LOG_FORMAT
+#: Log format of log output, this text is evaluated by eval command.
+#: Ensure that malicious codes are not included.
+#:   ex: log_debug "debug" ==> 2017-09-01 12:12:00 [DEBUG] - debug
+: ${PGENV_LOG_FORMAT:='- $@'}
+
+
+#:@PGENV_LOAD_PATH
+#: The paths in which import command searches libraries.
+PGENV_LOAD_PATH=( "${PGENV_LIBEXEC:-}" "$PWD/libexec"  "." )
+
+
+#:@PGENV_TMPDIR
+#: The temporary directory pgenv uses.
+declare -r PGENV_TMPDIR=${PGENV_TMPDIR:-"${TMPDIR:-/tmp}"}
+
+
+#:@PGENV_POSTGRESQL_SOURCE_FORMAT
+#: The postgresql archived source url.
+: ${PGENV_POSTGRESQL_SOURCE_FORMAT:="https://ftp.postgresql.org/pub/source/v%s/postgresql-%s.tar.gz"}
+
+
+#:@PGENV_POSTGRESQL_SOURCE_DIRECTORY
+#: The postgresql version directories url.
+: ${PGENV_POSTGRESQL_SOURCE_DIRECTORY:="https://www.postgresql.org/ftp/source/"}
+
+
+#:@PGENV_VERSIONS_DIR
+#: The directory where version link are stored.
+: ${PGENV_VERSIONS_DIR:=versions}
+
+
+#:@PGENV_ARCHIVE_DIR
+#: The directory where postgresql archive is stored.
+: ${PGENV_ARCHIVE_DIR:=archive}
+
+
+#:@PGENV_REPOSITORY_DIR
+#: The directory where postgresql expanded sources are stored.
+: ${PGENV_SOURCE_DIR:=sources}
+
+
+#:@PGENV_LOGS_DIR
+#: The log directory where pgenv output when building.
+: ${PGENV_LOGS_DIR:=logs}
+
+
+#:@PGENV_DEFAULT_LINK
+#: The linkfile where current context is pointed.
+: ${PGENV_DEFAULT_LINK:="default"}
+
+
+#:@PGENV_CONFIGURE_OPTIOINS_DIR
+#: The file configure options are stored. When pgenv builds source, refers to them.
+: ${PGENV_CONFIGURE_OPTIOINS_DIR:=configure_options}
+
+
+# show_config
+#   Print pgenv configurations.
+#
+show_config() {
+  OLDIFS="$IFS"
+  IFS=$'\n'
+  local var varname varleft in_section line comment
+  declare -A variables
+
+  for var in $(set | grep "^PGENV_" 2> /dev/null); do
+    varname="${var/=*/}"
+    varleft="${varname}="
+    variables[$varname]="${var:${#varleft}}"
+  done
+  IFS="$OLDIFS"
+
+  in_section=0
+  varname=
+  while IFS= read -r line; do
+    if [[ $line =~ ^$ ]] || [ "${line:0:2}" != "#:" ]; then
+      if [ $in_section -eq 1 ] && [ -n "$varname" ]; then
+        in_section=0
+        printf "%s\n\n" "=> ${variables[$varname]:-}"
+        varname=
+      fi
+      continue
+    fi
+    in_section=1
+    comment="${line:2}"
+    [[ $line =~ @(.*) ]] && varname="${BASH_REMATCH[1]}"
+    echo "$comment"
+  done < "$BASH_SOURCE"
+
+  if [ -n "$varname" ]; then
+    printf "%s\n\n" "=> ${variables[$varname]:-}"
+  fi
+}
+
+
+# Print comment lines in this file.
+#
+#  #:@<variable>
+#  #:  This is a comment.
+#  #:  This is a comment.
+#
+if [ "${1:-}" = "show" ]; then
+  show_config
+fi
+
+:

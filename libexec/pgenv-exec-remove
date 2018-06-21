@@ -1,0 +1,182 @@
+#!/usr/bin/env bash
+
+set -eu
+
+source "$PGENV_LIBEXEC"/pgenv--load
+
+# Command line options
+declare -A options
+options=(
+  [force]=0
+  [r_archive]=0
+  [r_source]=0
+  [all]=0
+)
+
+# Arguments array
+arguments=()
+
+
+(
+  cd "$PGENV_ROOT"
+  mkdir -p "$PGENV_VERSIONS_DIR" "$PGENV_ARCHIVE_DIR" "$PGENV_SOURCE_DIR"
+)
+
+
+# Remove version
+pg_remove_version=
+
+
+#: parse_options [arg ...]
+#:   Parse command line options.
+#:
+parse_options() {
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      -f|--force)        options[force]=1       ;;
+      --source)          options[r_source]=1    ;;
+      --archive)         options[r_archive]=1   ;;
+      -a|--all)
+        options[r_archive]=1
+        options[r_source]=1
+        ;;
+      -*)
+        abort "error: $(self): invalid option: $1"
+        ;;
+      *)
+        arguments[${#arguments[@]}]="$1"
+        ;;
+    esac
+    shift
+  done
+
+  if [ ${#arguments[@]} -eq 0 ]; then
+    abort "<version> is empty"
+  fi
+
+  # Basic settings.
+  pg_remove_version="${arguments[0]}"
+}
+
+#: yes_or_no
+#:
+#:
+yes_or_no() {
+  if [ ${options[force]} -eq 0 ]; then
+    while true
+    do
+      println "$(text_color_warn "$1")"
+      printf "[yes|no]: "
+      read answer
+      if [ "${answer:0:1}" = "y" ]; then
+        return 0
+      elif [ "${answer:0:1}" = "n" ]; then
+        return 1
+      fi
+    done
+  fi
+  :
+}
+
+
+#: remove_pg
+#:   Remove postgresql.
+#:
+remove_pg() {
+  local status=0
+
+  # Switch working directory.
+  cd "$PGENV_ROOT"
+
+  local version_dir="$PGENV_VERSIONS_DIR"/"$pg_remove_version"
+  if [ ! -h "$version_dir" ] && [ ! -d "$version_dir" ]; then
+    error "error: version may not be installed: $pg_remove_version"
+    abort "hint: execute 'pgenv list'"
+  fi
+
+  local version_name="$pg_remove_version"
+  local install_dir="$(cd -P -- "$version_dir" && pwd -P) 2> /dev/null"
+  local source_dir="$PGENV_SOURCE_DIR"/"$pg_remove_version"
+  local archive_file="$PGENV_ARCHIVE_DIR"/"postgresql-${pg_remove_version}.tar.gz"
+
+  # Remove binary
+  if [ -d "$install_dir" ]; then
+    status=0
+    log_info "==> remove install binary: $version_dir"
+    yes_or_no "Do you remove '$version_dir' ?" || status=$?
+    if [ $status -eq 0 ]; then
+      rm -rf "$install_dir"
+    fi
+  fi
+
+  # If version_dir remains, remote it too.
+  if [ -h "$version_dir" ]; then
+    log_info "==> remove version link: $version_dir"
+    rm -rf "$version_dir"
+  fi
+
+  # Remove source
+  if [ ${options[r_source]} -eq 1 -a -d "$source_dir" ]; then
+    status=0
+    log_info "==> remove source: $source_dir"
+    yes_or_no "Do you remove $source_dir ?" || status=$?
+    if [ $status -eq 0 ]; then
+      rm -rf "$source_dir"
+    fi
+  fi
+
+  # Remove archive
+  if [ ${options[r_archive]} -eq 1 -a -f "$archive_file" ]; then
+    status=0
+    log_info "==> remove archive: $archive_file"
+    yes_or_no "Do you remove $archive_file ?" || status=$?
+    if [ $status -eq 0 ]; then
+      rm -rf "$archive_file"
+    fi
+  fi
+
+  :
+}
+
+# Parse command line options.
+parse_options "$@"
+
+# Remove post gresq;
+remove_pg
+
+exit $?
+
+
+#=begin COMMAND
+#
+# remove      Remove postgresql with the specified version.
+#
+#=end COMMAND
+
+#=begin HELP
+#
+# Usage: pgenv remove [--archive] [-a|--all] [-f|--force] [--source] <version>
+#
+# Remove postgresql.
+#
+#
+# SYNOPSIS
+#   pgenv remove 10.3
+#   pgenv remove --archive 10.3
+#   pgenv remove -f 10.3
+#
+# OPTIONS
+#   --archive
+#     Remove archive file too.
+#
+#   -a, --all
+#     Remove all files (archive and source and binary).
+#
+#   -f, --force
+#     Attempt to remove the files without prompting for confirmation.
+#
+#   --source
+#     Remove source files too.
+#
+#
+#=end HELP

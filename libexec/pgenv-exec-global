@@ -1,0 +1,144 @@
+#!/usr/bin/env bash
+
+set -eu
+
+source "$PGENV_LIBEXEC"/pgenv--load
+
+# Arguments array
+arguments=()
+
+# The version link
+pg_setglobal_version=
+
+# Profile file
+pg_profile="$PGENV_ROOT/profile"
+
+
+#: parse_options [arg ...]
+#:   Parse command line options.
+#:
+parse_options() {
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      -*)
+        abort "error: $(self): invalid option: $1"
+        ;;
+      *)
+        arguments[${#arguments[@]}]="$1"
+        ;;
+    esac
+    shift
+  done
+
+  if [ ${#arguments[@]} = 0 ]; then
+    error "error: <version> is empty"
+    abort "hint: please pass <version> you will set as default context"
+  fi
+
+  # Basic settings
+  pg_setglobal_version="${arguments[0]}"
+}
+
+#: set_global_link
+#:   Set current context to the specified version.
+#:
+set_global_link() {
+  local available_versions=()
+  local version_directory=
+
+  # Change working directory.
+  cd "$PGENV_ROOT"
+
+  # Get available versions.
+  log_trace "==> find '$PGENV_VERSIONS_DIR'"
+  for version_directory in $(find "$PGENV_VERSIONS_DIR" -maxdepth 1 -mindepth 1 -type d); do
+    available_versions[${#available_versions[@]}]="$(basename -- "$version_directory")"
+  done
+
+  for version_directory in $(find "$PGENV_VERSIONS_DIR" -maxdepth 1 -mindepth 1 -type l); do
+    available_versions[${#available_versions[@]}]="$(basename -- "$version_directory")"
+  done
+
+  log_trace "==> ${available_versions[@]}"
+
+  # Check whether pg_setglobal_version is valid.
+  local found_valid_version=0
+  for version_directory in "${available_versions[@]}"; do
+    if [ "$pg_setglobal_version" = "$version_directory" ]; then
+      found_valid_version=1
+      break
+    fi
+  done
+
+  # If pg_setglobal_version is invalid, halt here.
+  if [ $found_valid_version -ne 1 ]; then
+    log_error "version '$pg_setglobal_version' is invalid"
+    abort "hint: is there '$pg_setglobal_version' directory under '$PGENV_VERSIONS_DIR' ?"
+  fi
+
+  # Ok, we set current context to the new version.
+  log_trace "==> link to $pg_setglobal_version"
+  if [ -d "$PGENV_DEFAULT_LINK" ]; then
+    rm -rf "$PGENV_DEFAULT_LINK"
+  fi
+  ln -snf "$PGENV_VERSIONS_DIR/$pg_setglobal_version" "$PGENV_DEFAULT_LINK"
+
+  # If profile does not exist, make it.
+  if [ ! -s "$pg_profile" ]; then
+  cat <<'EOF' > "$pg_profile"
+HERE="$(cd -P -- "$(dirname -- "${BASH_SOURCE:-$0}")" && pwd -P)"
+export PATH="$HERE/default/bin":"$HERE/bin":"$PATH"
+export POSTGRES_HOME="$HERE/default"
+export PGLIB="$POSTGRES_HOME/lib"
+export LD_LIBRARY_PATH="$PGLIB:$LD_LIBRARY_PATH"
+EOF
+  fi
+  :
+
+  println "Current version -> $(text_color_success "$PGENV_VERSIONS_DIR/$pg_setglobal_version")"
+
+  # Show next step.
+  text_color_on 7 "" ""
+  cat <<EOF
+
+[Next step]
+
+  Create an instance and start postmaster:
+    $ initdb pgdata
+    $ pg_ctl -D pgdata -l postgresql.log start
+
+  Connect to the postgres database:
+    $ psql postgres
+
+EOF
+  text_color_off
+}
+
+
+# Parse command line options.
+parse_options "$@"
+
+# Replace current context with the specified version.
+set_global_link
+
+exit $?
+
+
+#=begin COMMAND
+#
+# global      Set current context to the specified version.
+#
+#=end COMMAND
+
+#=begin HELP
+#
+# Usage: pgenv global <version>
+#
+# Set current context to the specified version.
+#
+#
+# SYNOPSIS
+#   pgenv global 10.3
+#
+#
+#=end HELP

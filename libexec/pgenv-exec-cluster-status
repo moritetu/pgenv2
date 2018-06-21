@@ -1,0 +1,74 @@
+#!/usr/bin/env bash
+
+set -eu
+
+source "$PGENV_LIBEXEC"/pgenv--load
+source "$PGENV_LIBEXEC"/pgenv--cluster-functions
+
+
+# Arguments array
+arguments=()
+
+
+OLDPWD="$PWD"
+
+
+#: parse_options [arg ...]
+#:   Parse command line options.
+#:
+parse_options() {
+  local status=0
+
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      -*)
+        abort "error: $(self): invalid option: $1"
+        ;;
+      *)
+        arguments[${#arguments[@]}]="$1"
+        ;;
+    esac
+    shift
+  done
+}
+
+
+load_cluster_setting
+
+# Parse command line options.
+parse_options "$@"
+
+# Show my cluster status
+show_cluster_status
+
+exit $?
+
+
+#=begin SUBCOMMAND
+#
+# cluster status    Show cluster status.
+#
+#=end SUBCOMMAND
+
+
+#=begin HELP
+#
+# Usage: pgenv cluster status
+#
+# Show cluster status.
+#
+#
+# SYNOPSIS
+#   pgenv cluster -D /path/to/cluster status
+#
+#
+# STATUS INFORMATION
+#   - [Cluster servers]
+#     This indicates primary server and standby servers status.
+#
+#   - [Replication Graph]
+#     This indicates current replication status.
+#     It shows the information from pg_stat_replication view.
+#
+#
+#=end HELP
