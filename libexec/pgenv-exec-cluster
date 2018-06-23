@@ -99,7 +99,7 @@ case ${arguments[0]:-""} in
       abort "hint: pass other directory or remove it before setup."
     fi
     ;;
-  start|stop|status|ctrr|tail)
+  start|stop|status|ctrl|tail)
     (
       if [ ! -f "$PGENV_CLUSTER_ROOT"/"$PGENV_CLUSTER_CONFIG" ]; then
         error "error: '$PGENV_CLUSTER_ROOT' does not look like a cluster directory."

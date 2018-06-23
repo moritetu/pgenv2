@@ -65,11 +65,11 @@ tail_logs() {
   fi
 
   log_trace "==> version check"
-  if (( $(check_pg_version 10) )); then
-    log_trace "later than 10"
+  if (( $(version_later_than 10) )); then
+    log_trace "earlier than 10"
     log_dir="pg_log"
   else
-    log_trace "earlier than 10"
+    log_trace "later than 10"
     log_dir="log"
   fi
 
@@ -103,7 +103,7 @@ load_cluster_setting
 parse_options "$@"
 
 if [ ${options[all]} -eq 1 ]; then
-  tail_logs "$primary_server" "${all_standby_servers}"
+  tail_logs "$primary_server" "${all_standby_servers[@]}"
 else
   tail_logs "${arguments[@]}"
 fi

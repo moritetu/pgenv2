@@ -682,7 +682,7 @@ readonly pgenv_hash
 #: ex: hash_get "my"  => value
 #:
 hash_get() {
-  eval printf '${__pgenv_hashmap["%s"]:-""}' "$*"
+   eval echo $(printf '${__pgenv_hashmap["%s"]:-""}' "$*")
 }
 
 #: hash_set <key> [<key> ...] <value>
@@ -695,7 +695,7 @@ hash_set() {
   local value_index=$((argnum - 1))
   local key=(${args[@]:0:$value_index})
   local value="${args[@]:$value_index:1}"
-  eval printf '__pgenv_hashmap["%s"]="$value"' "${key[*]}"
+  eval $(printf '__pgenv_hashmap["%s"]="$value"' "${key[*]}")
 }
 
 #: hash_delete <key> [<key> ...]

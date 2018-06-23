@@ -62,9 +62,23 @@ switch_context() {
 #: check_pg_version <version>
 #:   Check whether the specified version equals pg_setup_version.
 #:
+#: ex:
+#:   $(check_pg_version 10) )) && echo "version is 10"
+#:
 check_pg_version() {
   local ver="$1"
   test "${pg_setup_version%%.*}" = "$ver"
+}
+
+#: version_later_than <version>
+#:   Check whether the specified version is later than pg_setup_version.
+#:
+#: ex:
+#:   $(version_later_than 10) )) && echo "version is later than 10"
+#:
+version_later_than() {
+  local ver="$1"
+  (( "${pg_setup_version%%.*}" <= "$ver" ))
 }
 
 
@@ -174,7 +188,7 @@ working_directory="$OLDPWD"    # This is the directory where you were when creat
 EOF
 
   {
-    analyze_replication_tree
+    inspect_replication_tree
   } >> "$cluster_config"
 }
 
@@ -262,12 +276,25 @@ show_replication_tree() {
   local nest_level="${2:-0}"
   local node=
 
+  if [ -n "$(hash_get "rep" "$root_node")" ]; then
+    return 0
+  fi
+
   if [ -z "$root_node" ] && [ $nest_level -eq 0 ]; then
+    for node in ${!replication_tree[*]}; do
+      show_replication_tree "$node" 0
+    done
+    return 0
+  elif [ "$root_node" = "$primary_server" ]; then
     printf "%s" "$primary_server -> "
     root_node="$primary_server"
+  elif [ $nest_level -eq 0 ]; then
+    printf "%s" "$root_node -> "
   else
     printf "%${nest_level}s%s" " " "$root_node -> "
   fi
+
+  hash_set "rep" "$root_node" 1
 
   if [ -n "${replication_tree["$root_node"]:-""}" ]; then
     for node in ${replication_tree["$root_node"]}; do
@@ -751,7 +778,7 @@ show_cluster_status() {
   println
 
   println "[Replication Graph]"
-  analyze_replication_tree &> /dev/null
+  inspect_replication_tree &> /dev/null
   show_replication_tree
 
   println

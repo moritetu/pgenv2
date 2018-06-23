@@ -68,15 +68,19 @@ show_prefix_and_run() {
   fi
 
 
-  if [ ${options[source]} -eq 1 ] && [ -e "$PGENV_SOURCE_DIR"/"$version_name" ]; then
-    (
-      cd "$PGENV_SOURCE_DIR"/"$version_name"
-      if [ ${#arguments[@]} -gt 0 ]; then
-        eval "${arguments[@]}"
-      else
-        pwd -P
-      fi
-    )
+  if [ ${options[source]} -eq 1 ]; then
+    if [ ! -e "$PGENV_SOURCE_DIR"/"$version_name" ]; then
+      log_warn "version not found: $PGENV_SOURCE_DIR/$version_name"
+    else
+      (
+        cd "$PGENV_SOURCE_DIR"/"$version_name"
+        if [ ${#arguments[@]} -gt 0 ]; then
+          eval "${arguments[@]}"
+        else
+          pwd -P
+        fi
+      )
+    fi
     exit 0
   fi
 
