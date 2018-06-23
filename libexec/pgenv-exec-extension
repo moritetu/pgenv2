@@ -1,0 +1,274 @@
+#!/usr/bin/env bash
+
+source "$PGENV_LIBEXEC"/pgenv--load
+enable_setopt "euET"
+
+
+# Arguments array
+arguments=()
+
+# Extension sub command
+ext_command=""
+
+# Template based on copy
+template="$PGENV_ROOT/templates/myext"
+
+# Output/Extension directory
+extdir=""
+
+# PostgreSQL version on which you build your extension.
+pg_version="$(pgenv -s current)"
+
+
+declare -A variables=()
+declare -A options=(
+  [force]=0
+  [template]=
+  [version]=""
+)
+
+
+OLDPWD="$PWD"
+
+
+#: parse_options [arg ...]
+#:   Parse command line options.
+#:
+parse_options() {
+
+  case "$ext_command" in
+    (init)
+
+      local arg= d_name= d_value=
+      while [ $# -gt 0 ]; do
+        case "$1" in
+          -f)   options[force]=1  ;;
+          -t | --template)
+            shift
+            [ -z "${1:-}" ] && abort "error: $(self): template is not specified: -t <template>"
+            if [ "${1:0:1}" != "/" ]; then
+              template="$PGENV_ROOT/templates/$1"
+            else
+              template="$1"
+            fi
+            options[template]="$template"
+            ;;
+          -D*)
+            arg="${1:2}"
+            d_name="${arg%%=*}"
+            d_value="${arg/${d_name}=/}"
+            variables["$d_name"]="$d_value"
+            ;;
+          -*)
+            abort "error: $(self): invalid option: $1"
+            ;;
+          *)
+            arguments[${#arguments[@]}]="$1"
+            ;;
+        esac
+        shift
+      done
+
+      if [ -z "$template" ] || [ ! -d "$template" ]; then
+        error "error: template not found: $template"
+        abort "hint: please set valid template name"
+      fi
+
+      if [ ${#arguments[@]} -eq 0 ]; then
+        abort "error: <extdir> is empty"
+      fi
+
+      extdir="$(resolve_link "${arguments[0]}")"
+
+      ;;
+
+    (install|run)
+
+      while [ $# -gt 0 ]; do
+        case "$1" in
+          -v|--version)
+            shift
+            options[version]="$1"
+            ;;
+          -*)
+            abort "error: $(self): invalid option: $1"
+            ;;
+          *)
+            arguments[${#arguments[@]}]="$1"
+            ;;
+        esac
+        shift
+      done
+
+      if [ -n "${options[version]}" ]; then
+        pg_version="${options[version]}"
+      fi
+
+      if [ ${#arguments[@]} -eq 0 ]; then
+        abort "error: <extdir> is empty"
+      fi
+
+      extdir="$(resolve_link "${arguments[0]}")"
+
+      ;;
+
+  esac
+}
+
+
+#: init_project
+#:   Copies a template to the specified output directory.
+#:
+init_project() {
+  trap 'abort "error: $(self): failed to copy"' ERR
+
+  local file
+  log_trace "==> copy '$template' to '$outdir'"
+  mkdir -p "$extdir"
+  if [ -n "$(ls "$extdir"/* 2>/dev/null)" ]; then
+    if [ ${options[force]} -ne 1 ]; then
+      abort "error: $(self): files already exist: '$extdir', to overwrite files, use '-f' option."
+    fi
+  fi
+
+  /bin/cp -rf "$template"/* "$extdir/"
+  for file in $(find "$extdir" -type f); do
+    log_trace "replace place holders: $file"
+    local bak_file="$file.bak"
+    sed -e "1,$ {
+      $(make_replace_strings_rule)
+    }" "$file" > "$bak_file"
+    mv -f "$bak_file" "$file"
+    if [[ "$file" =~ .*\.sh ]]; then
+      chmod +x "$file"
+    fi
+  done
+}
+
+
+#: install_extension
+#:   Make install.
+#:
+install_extension() {
+  arguments[${#arguments[@]}]="make install"
+  run_command_against_extension
+}
+
+
+#: run_command_against_extension
+#:   Run commands against extension.
+#:
+run_command_against_extension() {
+  local target_versions=()
+  if [ "$pg_version" = "@all" ]; then
+    target_versions=( $(pgenv -s list -l) )
+  else
+    target_versions=( $(IFS=',' ar=($pg_version) ; printf "%s\n" "${ar[@]}") )
+  fi
+
+  log_trace "==> run command againt versions: ${target_versions[@]}"
+
+  local ver status
+  for ver in ${target_versions[@]}; do
+    local add_path="$(pgenv -s prefix --bin -v "$ver")"
+    if [ ! -d "$add_path" ]; then
+      log_warn "failed to resolve version: $ver"
+      continue
+    fi
+    status=0
+    log_info "==> run command for version $ver"
+    (
+      log_trace "add PATH: $add_path"
+      export PATH="$add_path":"$PATH"
+      cd "$extdir"
+      eval "${arguments[@]:1}"
+    ) || status=$?
+  done
+}
+
+
+#: make_replace_strings_rule
+#:   Prints rules that 'sed' takes.
+#:
+make_replace_strings_rule() {
+  local key
+  for key in "${!variables[@]}"; do
+    printf "%s\n" "s|%${key}%|${variables[$key]}|g"
+  done
+}
+
+
+#: exit_for_invalid_command
+#:   Exit for invalid command.
+#:
+exit_for_invalid_command() {
+  error "error: invalid command: $ext_command"
+  abort "hint: extension <init|install|run> [OPTIONS] [<arg>...]"
+}
+
+
+if [ $# -eq 0 ]; then
+  exit_for_invalid_command
+fi
+ext_command="${1:-}"
+shift
+
+# Parse command line options.
+parse_options "$@"
+
+case "$ext_command" in
+  init)
+    init_project
+    ;;
+  install)
+    install_extension
+    ;;
+  run)
+    run_command_against_extension
+    ;;
+  *)
+    exit_for_invalid_command
+    ;;
+esac
+
+
+exit $?
+
+
+#=begin COMMAND
+#
+# extension   Extension operation.
+#
+#=end COMMAND
+
+#=begin HELP
+#
+# Usage: pgenv extension init [-f|--force] [-t|--template <template>] <extdir>
+#        pgenv extension install [-v|--version [@all|<version>[,<version>...]] <extdir>
+#        pgenv extension run [-v|--version [@all|<version>[,<version>...]] <extdir> <command>
+#
+# Create and build extensions.
+#
+#
+# COMMANDS
+#   init     Initialize a project
+#   install  Do make install
+#   run      Do command againt extension
+#
+# SYNOPSIS
+#   pgenv extension init --template myext myext
+#   pgenv extension install -v 10.4 myext
+#   pgenv extension run -v @all myext make installcheck
+#
+# OPTIONS
+#   -f, --force
+#     Overwrite even if the project already exists.
+#
+#   -t, --template <template>
+#     Template based on project.
+#
+#   -v, --version [@all|<version>[,<version>...]]
+#     PostgreSQL version to build the extension. If @all, build for all versions `pgenv list` returns.
+#
+#
+#=end HELP

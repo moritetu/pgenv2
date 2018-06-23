@@ -1,0 +1,4 @@
+module_pathname = '$libdir/myext'
+relocatable = true
+default_version = '1.0'
+
