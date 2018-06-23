@@ -9,7 +9,7 @@ source "$PGENV_LIBEXEC"/pgenv--load
 #:
 pgenv_pretty_usage() {
   cat<<EOS
-Usage: pgenv [-v] [-h] [--no-color] [--d[0-4]] <command> [<args>]
+Usage: pgenv [-v] [-h] [--no-color] [--d[0-4]] [-s|--silent] <command> [<args>]
 EOS
 }
 
@@ -25,6 +25,7 @@ OPTIONS
   --no-color          Disable output coloring.
   --d[0-4]            Set log level to TRACE(0), DEBUG(1), INFO(2), WARN(3), ERROR(4)
   --debug             Debug output.
+  -s, --silent        Set log level to 99(DISABLE). This is useful for internal command.
 
 COMMANDS
 $(collect_command_description)

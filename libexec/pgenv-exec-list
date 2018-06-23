@@ -7,6 +7,7 @@ source "$PGENV_LIBEXEC"/pgenv--load
 # Command line options
 declare -A options
 options=(
+  [list]=0
   [verbose]=0
 )
 
@@ -30,9 +31,8 @@ fi
 parse_options() {
   while [ $# -gt 0 ]; do
     case "$1" in
-      -v|--verbose)
-        options[verbose]=1
-        ;;
+      -l|--list)      options[list]=1     ;;
+      -v|--verbose)   options[verbose]=1  ;;
       -*)
         abort "error: $(self): invalid option: $1"
         ;;
@@ -69,18 +69,25 @@ show_installed_versions() {
 
   log_trace "==> ${available_versions[@]}"
 
-  local pathinfo=""
-  for version_directory in "${available_versions[@]}"; do
-    if [ ${options[verbose]} -eq 1 ]; then
-      pathinfo=" -> $(cd -P -- "$PGENV_VERSIONS_DIR/$version_directory" && pwd -P)"
-    fi
-    if [ "$pg_current_version" = "$version_directory" ]; then
-      println "$(text_color_success "* $(printf "%-10s %s" "${version_directory}" "${pathinfo}")")"
-    else
-      println "  $(printf "%-10s %s" "${version_directory}" "${pathinfo}")"
-    fi
-    pathinfo=""
-  done
+
+  if [ ${options[list]} -eq 1 ]; then
+    for version_directory in "${available_versions[@]}"; do
+      echo "$version_directory"
+    done
+  else
+    local pathinfo=""
+    for version_directory in "${available_versions[@]}"; do
+      if [ ${options[verbose]} -eq 1 ]; then
+        pathinfo=" -> $(cd -P -- "$PGENV_VERSIONS_DIR/$version_directory" && pwd -P)"
+      fi
+      if [ "$pg_current_version" = "$version_directory" ]; then
+        println "$(text_color_success "* $(printf "%-10s %s" "${version_directory}" "${pathinfo}")")"
+      else
+        println "  $(printf "%-10s %s" "${version_directory}" "${pathinfo}")"
+      fi
+      pathinfo=""
+    done
+  fi
 }
 
 # Parse command line options.
@@ -100,7 +107,7 @@ exit $?
 
 #=begin HELP
 #
-# Usage: pgenv list [-v|--verbose]
+# Usage: pgenv list [-v|--verbose|-l|--list]
 #
 # Show installed versions.
 #
@@ -108,10 +115,14 @@ exit $?
 # SYNOPSIS
 #   pgenv list
 #   pgenv list -v
+#   pgenv list -l
 #
 # OPTIONS
 #   -v, --verbose
 #     Show verbose output.
+#
+#   -l, --list
+#     Show only installed versions.
 #
 #
 #=end HELP

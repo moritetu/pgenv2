@@ -176,7 +176,7 @@ all_standby_ports=(${synchronous_standby_ports[@]:-} ${asynchronous_standby_port
 pg_setup_version="$pg_setup_version"
 
 # Version of pgenv
-pgenv_version="$(pgenv -v)"
+pgenv_version="$(pgenv -s -v)"
 
 # Other information
 pg_start_port=$pg_start_port   # Starting port number used when port number was not passed.

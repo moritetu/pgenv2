@@ -30,7 +30,7 @@ parse_options() {
     shift
   done
 
-  if [ ${#arguments[@]} = 0 ]; then
+  if [ ${#arguments[@]} -eq 0 ]; then
     error "error: <version> is empty"
     abort "hint: please pass <version> you will set as default context"
   fi
