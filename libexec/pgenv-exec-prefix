@@ -91,6 +91,11 @@ show_prefix_and_run() {
     local error_message="error: refer invalid version or version link is broken.\n"
     error_message="${error_message}hint: check '$PGENV_ROOT/$PGENV_DEFAULT_LINK'"
 
+    export PATH="$PWD/bin":"$PATH"
+    export POSTGRES_HOME="$PWD"
+    export PGLIB="$POSTGRES_HOME/lib"
+    export LD_LIBRARY_PATH="$PGLIB:$LD_LIBRARY_PATH"
+
     if [ ${options[bin]} -eq 1 ]; then
       cd bin || abort "$error_message"
     elif [ ${options[lib]} -eq 1 ]; then
@@ -103,10 +108,7 @@ show_prefix_and_run() {
 
     if [ ${#arguments[@]} -gt 0 ]; then
       log_trace "==> eval ${arguments[@]}"
-      local com=
-      for com in ${arguments[@]}; do
-        eval "$com"
-      done
+      eval "${arguments[@]}"
     else
       pwd -P
     fi

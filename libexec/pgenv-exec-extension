@@ -166,16 +166,19 @@ run_command_against_extension() {
 
   local ver status i=0
   for ver in ${target_versions[@]}; do
-    local add_path="$(pgenv -s prefix --bin -v "$ver")"
-    if [ ! -d "$add_path" ]; then
+    local postgres_home="$(pgenv -s prefix -v "$ver")"
+    if [ ! -d "$postgres_home" ]; then
       log_warn "failed to resolve version: $ver"
       continue
     fi
     status=0
     log_info "==> run command for version $ver"
     (
-      log_trace "add PATH: $add_path"
-      export PATH="$add_path":"$PATH"
+      export PATH="$postgres_home/bin":"$PATH"
+      export POSTGRES_HOME="$postgres_home"
+      export PGLIB="$postgres_home/lib"
+      export LD_LIBRARY_PATH="$PGLIB:$LD_LIBRARY_PATH"
+
       # Available variables
       ver="$ver"
       i="$i"
