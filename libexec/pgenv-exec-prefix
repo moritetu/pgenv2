@@ -38,7 +38,7 @@ parse_options() {
         abort "error: $(self): invalid option: $1"
         ;;
       *)
-        arguments=($@)
+        arguments=("$@")
         break
         ;;
     esac
@@ -103,7 +103,10 @@ show_prefix_and_run() {
 
     if [ ${#arguments[@]} -gt 0 ]; then
       log_trace "==> eval ${arguments[@]}"
-      eval "${arguments[@]}"
+      local com=
+      for com in ${arguments[@]}; do
+        eval "$com"
+      done
     else
       pwd -P
     fi

@@ -94,7 +94,8 @@ parse_options() {
             abort "error: $(self): invalid option: $1"
             ;;
           *)
-            arguments[${#arguments[@]}]="$1"
+            arguments=("$@")
+            break
             ;;
         esac
         shift
@@ -103,12 +104,6 @@ parse_options() {
       if [ -n "${options[version]}" ]; then
         pg_version="${options[version]}"
       fi
-
-      if [ ${#arguments[@]} -eq 0 ]; then
-        abort "error: <extdir> is empty"
-      fi
-
-      extdir="$(resolve_link "${arguments[0]}")"
 
       ;;
 
@@ -123,7 +118,7 @@ init_project() {
   trap 'abort "error: $(self): failed to copy"' ERR
 
   local file
-  log_trace "==> copy '$template' to '$outdir'"
+  log_trace "==> copy '$template' to '$extdir'"
   mkdir -p "$extdir"
   if [ -n "$(ls "$extdir"/* 2>/dev/null)" ]; then
     if [ ${options[force]} -ne 1 ]; then
@@ -150,7 +145,7 @@ init_project() {
 #:   Make install.
 #:
 install_extension() {
-  arguments[${#arguments[@]}]="make install"
+  arguments[${#arguments[@]}]="make clean && make install"
   run_command_against_extension
 }
 
@@ -167,8 +162,9 @@ run_command_against_extension() {
   fi
 
   log_trace "==> run command againt versions: ${target_versions[@]}"
+  log_trace "command: ${arguments[@]}"
 
-  local ver status
+  local ver status i=0
   for ver in ${target_versions[@]}; do
     local add_path="$(pgenv -s prefix --bin -v "$ver")"
     if [ ! -d "$add_path" ]; then
@@ -180,9 +176,12 @@ run_command_against_extension() {
     (
       log_trace "add PATH: $add_path"
       export PATH="$add_path":"$PATH"
-      cd "$extdir"
-      eval "${arguments[@]:1}"
+      # Available variables
+      ver="$ver"
+      i="$i"
+      eval "${arguments[@]}"
     ) || status=$?
+    let i=i+1
   done
 }
 
@@ -244,8 +243,8 @@ exit $?
 #=begin HELP
 #
 # Usage: pgenv extension init [-f|--force] [-t|--template <template>] <extdir>
-#        pgenv extension install [-v|--version [@all|<version>[,<version>...]] <extdir>
-#        pgenv extension run [-v|--version [@all|<version>[,<version>...]] <extdir> <command>
+#        pgenv extension install [-v|--version [@all|<version>[,<version>...]]
+#        pgenv extension run [-v|--version [@all|<version>[,<version>...]] <command>
 #
 # Create and build extensions.
 #
@@ -257,8 +256,8 @@ exit $?
 #
 # SYNOPSIS
 #   pgenv extension init --template myext myext
-#   pgenv extension install -v 10.4 myext
-#   pgenv extension run -v @all myext make installcheck
+#   pgenv extension install -v 10.4
+#   pgenv extension run -v @all make installcheck
 #
 # OPTIONS
 #   -f, --force
