@@ -7,3 +7,8 @@ testing replication cluster.
 
 
 * Running on Bash 4.2 or later.
+
+Usage
+-----
+
+Please check the [WIKI](https://github.com/moritoru81/pgenv2/wiki) for more useful information.
