@@ -232,15 +232,15 @@ install_pg() {
   fi
 
   # If debug option, add '--enable-debug'.
-  if [ -n "${options[debug]}" ]; then
+  if [ ${options[debug]} -eq 1 ]; then
     configure_options="$configure_options --enable-debug"
   fi
 
   log_info "$configure_options"
 
   # Build!
-  log_info "==> configure"
   log_info "log: $install_log"
+  log_info "==> configure"
 
   status=0
   (
