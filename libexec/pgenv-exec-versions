@@ -23,7 +23,7 @@ pg_directories_file="$PGENV_ROOT/available_versions"
 parse_options() {
   while [ $# -gt 0 ]; do
     case "$1" in
-      --refresh)
+      -r|--refresh)
         options[refresh]=1
         ;;
       -*)
@@ -85,7 +85,7 @@ exit $?
 
 #=begin HELP
 #
-# Usage: pgenv versions [--refresh]
+# Usage: pgenv versions [-r|--refresh]
 #
 # Get available postgresql versions and show them.
 #
@@ -94,7 +94,7 @@ exit $?
 #   pgenv versions --refresh
 #
 # OPTIONS
-#   --refresh
+#   -r, --refresh
 #     Clear cached and get versions newly.
 #
 # SHELL VARIABLES

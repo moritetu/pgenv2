@@ -7,16 +7,17 @@ source "$PGENV_LIBEXEC"/pgenv--load
 # Command line options
 declare -A options
 options=(
+  [world]=0
   [alias]=
   [debug]=0
   [O3]=0
-  [clean]=0
   [refresh]=0
   [optsfile]=
   [configure_opts]=""
   [install_dir]=
   [force]=0
   [only_install]=0
+  [verbose]=0
 )
 
 # Arguments array
@@ -41,11 +42,14 @@ pg_archive_file=
 # Expanded directory
 pg_expanded_dir=
 
+# Build environment.
+pg_build_env="$PWD/pgenv_build_env"
+
 # Configure options used by default
 default_configure_options_file="$PGENV_ROOT/configure_options"
 
 # Local configure options.
-local_configure_options_file="$PWD/.pgenv_configure_opts"
+local_configure_options_file="$PWD/pgenv_configure_opts"
 
 # Configure options
 configure_options=""
@@ -58,12 +62,13 @@ parse_options() {
   while [ $# -gt 0 ]; do
     case "$1" in
       -d|--debug)      options[debug]=1         ;;
-      --clean)         options[clean]=1         ;;
-      --refresh)       options[refresh]=1       ;;
+      -r|--refresh)    options[refresh]=1       ;;
       -f|--force)      options[force]=1         ;;
+      -w|--world)      options[world]=1         ;;
+      -v|--verbose)    options[verbose]=1       ;;
       --O3)            options[O3]=1            ;;
       --only-install)  options[only_install]=1  ;;
-      --alias)
+      -a|--alias)
         shift
         options[alias]="$1"
         ;;
@@ -196,7 +201,11 @@ install_pg() {
   # If refresh option, execute 'make clean'.
   if [ ${options[refresh]} -eq 1 ]; then
     log_info "==> make clean"
-    make clean > "$install_log" 2>&1
+    if [ ${options[verbose]} -eq 1 ]; then
+      make clean |& tee -a "$install_log"
+    else
+      make clean >> "$install_log" 2>&1
+    fi
   fi
 
   local configure_options_file="$default_configure_options_file"
@@ -225,10 +234,10 @@ install_pg() {
   # Add '--prefix'.
   if [ -n "${options[install_dir]}" ]; then
     mkdir -p "${options[install_dir]}"
-    configure_options="$configure_options --prefix=${options[install_dir]}"
+    configure_options="$configure_options --prefix=\"${options[install_dir]}\""
   else
     mkdir -p "$PGENV_VERSIONS_DIR/$install_dirname"
-    configure_options="$configure_options --prefix=$PGENV_ROOT/$PGENV_VERSIONS_DIR/$install_dirname"
+    configure_options="$configure_options --prefix=\"$PGENV_ROOT/$PGENV_VERSIONS_DIR/$install_dirname\""
   fi
 
   # If debug option, add '--enable-debug'.
@@ -239,20 +248,38 @@ install_pg() {
   log_info "$configure_options"
 
   # Build!
-  log_info "log: $install_log"
+  log_info "log: $install_log (pgenv prefix --root cat $install_log)"
   log_info "==> configure"
 
   status=0
-  (
-    # configure
-    cd "$source_dir"
-    chmod +x configure
-    eval "./configure ${configure_options}"
-  )  > "$install_log" 2>&1 || status=$?
+  if [ ${options[verbose]} -eq 1 ]; then
+    (
+      if [ -f "$pg_build_env" ]; then
+        log_trace "include: $pg_build_env"
+        source "$pg_build_env" "configure"
+      fi
+      # configure
+      cd "$source_dir"
+      chmod +x configure
+      eval "./configure ${configure_options}"
+    ) |& tee -a "$install_log" || status=$?
+  else
+    (
+      if [ -f "$pg_build_env" ]; then
+        log_trace "include: $pg_build_env"
+        source "$pg_build_env" "configure"
+      fi
+      # configure
+      cd "$source_dir"
+      chmod +x configure
+      eval "./configure ${configure_options}"
+    ) >> "$install_log" 2>&1 || status=$?
+
+  fi
 
   if [ $status -ne 0 ]; then
     log_error "failed to configure"
-    abort "hint: please check configure options: see '$install_log'"
+    abort "hint: please check configure options: see 'pgenv prefix --root cat $install_log'"
   fi
 
   # Change optimization level.
@@ -267,15 +294,39 @@ install_pg() {
 
   # Make install.
   status=0
-  log_info "==> make install"
-  (
-    cd "$source_dir"
-    make install
-  ) >> "$install_log" 2>&1 || status=$?
+  local make_command=
+  if [ ${options[world]} -eq 1 ]; then
+    make_command=install-world
+  else
+    make_command=install
+  fi
+
+  log_info "==> make $make_command"
+  if [ ${options[verbose]} -eq 1 ]; then
+    (
+      if [ -f "$pg_build_env" ]; then
+        log_trace "include: $pg_build_env"
+        source "$pg_build_env" "configure"
+      fi
+
+      cd "$source_dir"
+      make $make_command
+    ) |& tee -a "$install_log" || status=$?
+  else
+    (
+      if [ -f "$pg_build_env" ]; then
+        log_trace "include: $pg_build_env"
+        source "$pg_build_env" "configure"
+      fi
+
+      cd "$source_dir"
+      make $make_command
+    ) >> "$install_log" 2>&1 || status=$?
+  fi
 
   if [ $status -ne 0 ]; then
-    log_error "failed to make install"
-    abort "see '$install_log'"
+    log_error "failed to make $make_command"
+    abort "see 'pgenv prefix --root cat $install_log'"
   fi
 
   if [ ${options[only_install]} -ne 1 ]; then
@@ -304,24 +355,25 @@ exit $?
 
 #=begin HELP
 #
-# Usage: pgenv install [--debug] [--O3] [--configure-options-file <file>] [--configure-options "<options>"]
-#                      [--clean] [--alias <name>] [--refresh] [--install-dir <dir>]
-#                      [-f|--force] [--only-install] <version>
+# Usage: pgenv install [-d|--debug] [--O3] [--configure-options-file <file>] [--configure-options "<options>"]
+#                      [-r|--refresh|-f|--force] [-w|--world]
+#                      [-a|-alias <name>] [-v|--verbose] [--install-dir <dir>]
+#                      [--only-install] <version>
 #
 # Build postgresql.
 #
 #
 # SYNOPSIS
-#   pgenv install --debug 10.3
+#   pgenv install --debug -v 10.3
 #   pgenv install --alias my10.3 --configure-options-file ./my10.3-configure-options --debug 10.3
 #   pgenv install --install-dir /path/to/test10.3 --alias test10.3 10.3
 #   pgenv install --install-dir /path/to/debug1 --only-install 10.3
 #
 # OPTIONS
-#   --alias <name>
+#   a-, --alias <name>
 #     Set alias name.
 #
-#   --debug
+#   -d, --debug
 #     Build with the debug mode (with --enable-debug).
 #
 #   --configure-options-file <file>
@@ -330,14 +382,14 @@ exit $?
 #   --configure-options <options>
 #     The options passed to 'configure' command.
 #
-#   --clean
-#     Remove existed source before install.
-#
 #   -f, --force
-#     Overwrite expanded source.
+#     Remove existed source before install and expand source.
 #
-#   --refresh
+#   -r, --refresh
 #     Execute 'make clean' before build.
+#
+#   -w, --world
+#     Use make world.
 #
 #   --install-dir <dir>
 #     The directory install postgresql. Default is $PGENV_ROOT/versions.
@@ -345,6 +397,21 @@ exit $?
 #   --only-install
 #     Build and install with existed source. It is useful for changing the source at development time
 #     and confirming operation.
+#
+#    -v, --verbose
+#     Show logs during installing.
+#
+#  CONFIGURE_OPTIONS
+#    Configure options are read with the following priority:
+#      1. $PGENV_ROOT/configure_options-<version>
+#      2. $PGENV_ROOT/configure_options
+#      3. $PWD/pgenv_configure_opts
+#
+#    You can edit with `pgenv configure` command.
+#
+#  BUILD_ENVIRONMENT
+#    If the following file exists, it is read before configure or make.
+#      - $PWD/pgenv_build_env
 #
 #
 #=end HELP

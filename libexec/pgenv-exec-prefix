@@ -7,6 +7,7 @@ source "$PGENV_LIBEXEC"/pgenv--load
 # Command line options
 declare -A options
 options=(
+  [root]=0
   [source]=0
   [bin]=0
   [lib]=0
@@ -25,6 +26,7 @@ arguments=()
 parse_options() {
   while [ $# -gt 0 ]; do
     case "$1" in
+      --root)      options[root]=1     ;;
       --source)    options[source]=1   ;;
       --bin)       options[bin]=1      ;;
       --lib)       options[lib]=1      ;;
@@ -104,6 +106,8 @@ show_prefix_and_run() {
       cd include || abort "$error_message"
     elif [ ${options[share]} -eq 1 ]; then
       cd share || abort "$error_message"
+    elif [ ${options[root]} -eq 1 ]; then
+      cd "$PGENV_ROOT" || abort "$error_message"
     fi
 
     if [ ${#arguments[@]} -gt 0 ]; then
@@ -132,7 +136,7 @@ exit $?
 
 #=begin HELP
 #
-# Usage: pgenv prefix [--source|--bin|--lib|--include|--share] [-v|--version <version>]
+# Usage: pgenv prefix [--root|--source|--bin|--lib|--include|--share] [-v|--version <version>]
 #                     [<command>]
 #
 # Show path to current postgresql.
@@ -141,6 +145,7 @@ exit $?
 #
 # SYNOPSIS
 #   pgenv prefix
+#   pgenv prefix --home
 #   $(pgenv prefix --bin)/initdb pgdata
 #   pgenv prefix --source
 #   pgenv prefix --bin initdb $PWD/foo
@@ -164,6 +169,9 @@ exit $?
 #
 #   -v, --version <version>
 #     Switch prefix context to the context of <version> temporarily.
+#
+#   --root
+#     Show pgenv root.
 #
 #
 #=end HELP

@@ -16,12 +16,13 @@ source "$HERE/profile"
 EOS
   if [ $? -ne 0 ]; then
     echo "error: failed to write setting into '$temporary_file'" >&2
+    /bin/rm "$temporary_file"
     exit 1
   fi
   mv "$temporary_file" "$BASH_PROFILE"
   if [ $? -ne 0 ]; then
     echo "error: failed to mv $temporary_file to $BASH_PROFILE'" >&2
-    rm "$temporary_file"
+    /bin/rm "$temporary_file"
     exit 1
   fi
   source "$BASH_PROFILE"
