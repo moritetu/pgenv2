@@ -110,7 +110,9 @@ show_prefix_and_run() {
       cd "$PGENV_ROOT" || abort "$error_message"
     fi
 
-    if [ ${#arguments[@]} -gt 0 ]; then
+    if [ -s /dev/stdin ]; then
+      eval "$(cat -)"
+    elif [ ${#arguments[@]} -gt 0 ]; then
       log_trace "==> eval ${arguments[@]}"
       eval "${arguments[@]}"
     else
@@ -147,7 +149,7 @@ exit $?
 #   pgenv prefix
 #   pgenv prefix --home
 #   $(pgenv prefix --bin)/initdb pgdata
-#   pgenv prefix --source
+#   echo "ls" | pgenv prefix --source
 #   pgenv prefix --bin initdb $PWD/foo
 #   pgenv prefix --share ls -l postgresql/extension
 #
