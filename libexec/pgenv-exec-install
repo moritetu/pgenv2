@@ -151,7 +151,7 @@ install_pg() {
   if [ ${options[only_install]} -ne 1 ]; then
     if [ ! -f "$PGENV_ARCHIVE_DIR/$pg_archive_file" ]; then
       log_info "==> download $source_url"
-      curl -f -o "$PGENV_ARCHIVE_DIR/$pg_archive_file" "$source_url"
+      $PGENV_CURL -f -o "$PGENV_ARCHIVE_DIR/$pg_archive_file" "$source_url"
     fi
   fi
 

@@ -60,8 +60,8 @@ fi
 
 # Download version information from the official site.
 log_info "==> get version list from $PGENV_POSTGRESQL_SOURCE_DIRECTORY"
-log_trace "exec: curl -f $PGENV_POSTGRESQL_SOURCE_DIRECTORY"
-curlout="$(curl -f $PGENV_POSTGRESQL_SOURCE_DIRECTORY)"
+log_trace "exec: $PGENV_CURL -f $PGENV_POSTGRESQL_SOURCE_DIRECTORY"
+curlout="$($PGENV_CURL -f $PGENV_POSTGRESQL_SOURCE_DIRECTORY)"
 ret=$?
 if [ $ret -ne 0 ]; then
   error "error: failed to download. status=$ret"

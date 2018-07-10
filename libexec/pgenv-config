@@ -69,6 +69,11 @@ declare -r PGENV_TMPDIR=${PGENV_TMPDIR:-"${TMPDIR:-/tmp}"}
 : ${PGENV_CONFIGURE_OPTIOINS_DIR:=configure_options}
 
 
+#:@PGENV_CURL
+#: curl command.
+: ${PGENV_CURL:="curl"}
+
+
 # show_config
 #   Print pgenv configurations.
 #
