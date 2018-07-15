@@ -1,0 +1,195 @@
+#!/usr/bin/env bash
+
+set -eu
+
+source "$PGENV_LIBEXEC"/pgenv--load
+
+declare -A options
+options=(
+  [version]=""
+  [envfile]=""
+  [scriptfile]=""
+)
+
+# Execution command
+exec_command=
+
+# Execution command file
+exec_scriptfile=
+
+# Target version
+pg_version="$(pgenv -s current)"
+
+# Environment filename
+pgenv_env_filename=
+
+# Environment file
+pgenv_instance_env_prefix="$PWD/pgenv_myenv"
+
+
+#: parse_options [arg ...]
+#:   Parse command line options.
+#:
+parse_options() {
+  local status=0
+
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      -v|--version)
+        shift
+        options[version]="$1"
+        ;;
+      -e|--envfile)
+        shift
+        options[envfile]="$1"
+        ;;
+      -f|--scriptfile)
+        shift
+        options[scriptfile]="$1"
+        ;;
+      -*)
+        abort "error: $(self): invalid option: $1"
+        ;;
+      *)
+        exec_command="$*"
+        break
+        ;;
+    esac
+    shift
+  done
+
+  if [ -s /dev/stdin ]; then
+    exec_command="$(cat -)"
+  fi
+
+  if [ -n "${options[scriptfile]}" ]; then
+    if [ ! -f "${options[scriptfile]}" ]; then
+      abort "error: file does not exist: ${options[scriptfile]}"
+    fi
+    exec_scriptfile="${options[scriptfile]}"
+  fi
+
+  if [ -n "${options[version]}" ]; then
+    pg_version="${options[version]}"
+    # Check whether version is valid.
+    status=0
+    pgenv prefix -v $pg_version < /dev/null &> /dev/null || status=$?
+    if [ $status -ne 0 ]; then
+      abort "error: version is invalid: $pg_version"
+    fi
+  fi
+
+  if [ -n "${options[envfile]}" ]; then
+    if [ ! -f "${options[envfile]}" ]; then
+      abort "error: environment file does not exist: ${options[envfile]}"
+    fi
+    pgenv_env_filename="${options[envfile]}"
+  fi
+
+  if [ -z "$exec_command" ] && [ -z "$exec_scriptfile" ]; then
+    abort "command or scriptfile is required"
+  fi
+}
+
+
+#: execute_commands
+#:   Execute the passed commands in the specified version context.
+#:
+execute_commands() {
+  local installdir="$(pgenv -s prefix -v $pg_version < /dev/null)"
+
+  log_trace "==> installdir: $installdir"
+  if [ -z "$installdir" ]; then
+    error "error: version directory is invalid"
+    abort "hint: pgenv prefix --bin"
+  fi
+
+  # Set environment variables
+  export PATH="$installdir/bin":"$PATH"
+  export POSTGRES_HOME="$installdir"
+  export PGLIB="$POSTGRES_HOME/lib"
+  export LD_LIBRARY_PATH="$PGLIB:$LD_LIBRARY_PATH"
+
+  # Include environment file
+  local include_envfile="$pgenv_env_filename"
+  if [ -z "$include_envfile" ]; then
+    local include_envfile=
+    local inst_version_env="${pgenv_instance_env_prefix}-${pg_version}"
+    local inst_env="${pgenv_instance_env_prefix}"
+    if [ -f "$inst_version_env" ]; then
+      include_envfile="$inst_version_env"
+    elif [ -f "$inst_env" ]; then
+      include_envfile="$inst_env"
+    fi
+  fi
+
+  if [ -f "$include_envfile" ]; then
+    log_trace "==> include environment: $include_envfile"
+    source "$include_envfile" "$pg_version"
+  fi
+
+  # Execute commands
+  if [ -n "$exec_command" ]; then
+    log_trace "==> execute commands"
+    log_trace "$exec_command"
+    eval "$exec_command"
+  fi
+
+  # Execute script
+  if [ -n "$exec_scriptfile" ]; then
+    log_trace "==> execute script file"
+    log_trace "$exec_scriptfile"
+    $SHELL "$exec_scriptfile"
+  fi
+}
+
+
+# Parse command line options.
+parse_options "$@"
+
+execute_commands
+
+exit $?
+
+
+#=begin COMMAND
+#
+# exec        Execute commands.
+#
+#=end COMMAND
+
+#=begin HELP
+#
+# Usage: pgenv exec [-e <env_filename>] [-v|--version <version>] [-f|--scriptfile <file>]
+#        [<commands>]
+#
+# Execute commands.
+#
+#
+# SYNOPSIS
+#   pgenv exec "initdb pgdata"
+#   pgenv exec -v 9.6 initdb pgdata96
+#   pgenv exec -e myenv initdb pgdata
+#   pgenv exec -e myenv -f my.sh "initdb pgdata"
+#
+# OPTIONS
+#   -v, --version <version>
+#     Version to execute commands.
+#
+#   -e <filename>
+#     The filename included at execution of commands.
+#
+#   -f <scriptfile>
+#     The execution script file. If commands are passed, script file is executed
+#     after command execution.
+#
+# ENVIRONMENT AT COMMAND EXECUTION
+#   `pgenv exec` loads local environment definitions from 'pgenv_myenv' file before execution of commands
+#   if the file exists in current directory.
+#   But if version is passed, instead of 'pgenv_myenv', 'pgenv_myenv-<version>' is preferentially read.
+#   Also in order to specify version, you can pass your environment definition file with '-e' option.
+#
+#   You can create the base file of environment definition with `pgenv env -w` command.
+#
+#
+#=end HELP
