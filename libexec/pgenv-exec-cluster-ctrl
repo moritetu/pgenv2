@@ -148,7 +148,6 @@ exit $?
 #   pgenv cluster -D /path/to/cluster ctrl -d standby3
 #   pgenv cluster -D /path/to/cluster ctrl -A
 #
-#
 # OPTIONS
 #   -a, --attach
 #     Attach a node to the cluster.

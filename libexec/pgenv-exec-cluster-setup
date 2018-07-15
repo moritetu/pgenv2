@@ -409,12 +409,10 @@ exit $?
 #   pgenv cluster -D /path/to/cluster setup -s s1 -a a1 primary
 #   pgenv cluster -D /path/to/cluster setup -s s1 -v 9.5 primary
 #
-#
 # OPTIONS
 #   -a, --async-standby <name>
 #     Asynchronous standby server. <name> is the instance directory, it must not include
 #     delimeter character like space.
-#
 #
 #   -o, --initdb-options <options>
 #     Options passed to 'initdb' command.

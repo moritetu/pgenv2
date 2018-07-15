@@ -61,7 +61,6 @@ exit $?
 # SYNOPSIS
 #   pgenv cluster -D /path/to/cluster status
 #
-#
 # STATUS INFORMATION
 #   - [Cluster servers]
 #     This indicates primary server and standby servers status.

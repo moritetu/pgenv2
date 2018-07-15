@@ -104,7 +104,6 @@ exit $?
 #   pgenv cluster -D /path/to/cluster start --all
 #   pgenv cluster -D /path/to/cluster start s1
 #
-#
 # OPTIONS
 #   -a, --all
 #     Start all instances.

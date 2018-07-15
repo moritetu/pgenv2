@@ -104,7 +104,6 @@ exit $?
 #   pgenv cluster -D /path/to/cluster stop -a -f
 #   pgenv cluster -D /path/to/cluster stop s1
 #
-#
 # OPTIONS
 #   -a, --all
 #     Stop all instances.

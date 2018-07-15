@@ -131,7 +131,6 @@ exit $?
 #   pgenv cluster -D /path/to/cluster tail --all-logs -a
 #   pgenv cluster -D /path/to/cluster tail -f s1
 #
-#
 # OPTIONS
 #   -a, --all
 #     Tail all instance logs.
