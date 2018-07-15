@@ -1,0 +1,156 @@
+#!/usr/bin/env bash
+
+set -eu
+
+source "$PGENV_LIBEXEC"/pgenv--load
+
+# Command line options
+declare -A options
+options=(
+  [version]=
+  [write]=0
+  [edit]=0
+)
+
+# Arguments array
+arguments=()
+
+# Environment file
+pgenv_instance_default_environment="$PWD/pgenv_myenv"
+
+pgenv_instance_env_file="$pgenv_instance_default_environment"
+
+# Target version to edit
+pg_version="$(pgenv -s current)"
+
+# Editor
+EDITOR="${EDITOR:-/usr/bin/vi}"
+
+
+#: parse_options [arg ...]
+#:   Parse command line options.
+#:
+parse_options() {
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      -v|--version)
+        shift
+        options[version]="$1"
+        ;;
+      -w|--write)
+        options[write]=1
+        ;;
+      -e|--edit)
+        options[edit]=1
+        ;;
+      -*)
+        abort "error: $(self): invalid option: $1"
+        ;;
+      *)
+        arguments[${#arguments[@]}]="$1"
+        ;;
+    esac
+    shift
+  done
+
+  if [ ${#arguments[@]} -gt 0 ]; then
+    pgenv_instance_env_file="${arguments[0]}"
+  elif [ -n "${options[version]}" ]; then
+    pgenv_instance_env_file="${pgenv_instance_default_environment}-${options[version]}"
+  fi
+}
+
+
+# create_env_tempfile
+#   Create a temporary file for editing environment variables.
+#
+create_env_tempfile() {
+  cat <<EOF > "$pgenv_instance_env_file"
+# Created by pgenv at $(date +'%Y-%m-%d %H:%M:%S')
+export PGHOST=localhost           # host
+#export PGHOSTADDR=127.0.0.1      # hostaddr
+#export PGPORT=5432               # port
+#export PGDATABASE=postgres       # dbname
+#export PGUSER=$USER              # user
+#export PGPASSFILE=~/.pgpass      # passfile
+#export PGPASSWORD=               # password (not recommended, use passfile)
+#export PGSERVICE=                # service
+#export PGSERVICEFILE=~/.pg_service.conf
+#export PGREALM=                  # For Kerberos
+#export PGOPTIONS=                # options
+#export PGAPPNAME=pgenv_app       # application_name
+
+# For SSL
+#export PGSSLMODE=disable         # disable , allow, prefer, require, verify-ca, verify-full
+#export PGREQUIRESSL=prefer       # 0: prefer, 1: require
+#export PGSSLCOMPRESSION=0        # 0: no compression, 1: compression
+#export PGSSLCERT=~/.postgresql/postgresql.crt
+#export PGSSLKEY=~/.postgresql/postgresql.key
+#export PGSSLROOTCERT=~/.postgresql/root.crt
+#export PGSSLCRL=~/.postgresql/root.crl
+
+#export PGREQUIREPEER=postgres
+#export PGKRBSRVNAME=servicename
+#export PGGSSLIB=gssapi           # sspi, gssapi
+#export PGCONNECT_TIMEOUT=30      # connect_timeout seconds
+#export PGCLIENTENCODING=auto     # client_encoding
+#export PGDATESTYLE='iso, ymd'    # Equals 'SET datestyle to...'
+#export PGTZ='Japan'              # Equals 'SET timezone to...'
+#export PGGEQO=on                 # Equals 'SET geqo to...'
+#export PGSYSCONFDIR='/path/to/pg_service'
+#export PGLOCALEDIR='/path/to/locale'
+EOF
+}
+
+
+# Parse command line options.
+parse_options "$@"
+
+if [ ${options[edit]} -eq 1 ]; then
+  $EDITOR "$pgenv_instance_env_file"
+elif [ ${options[write]} -eq 1 ]; then
+  if [ -f "$pgenv_instance_env_file" ]; then
+    abort "error: file already exists: $pgenv_instance_env_file"
+  fi
+  create_env_tempfile
+  println "file created: $pgenv_instance_env_file"
+fi
+
+
+exit $?
+
+
+#=begin COMMAND
+#
+# env         Edit enviroment variables for postgresql.
+#
+#=end COMMAND
+
+#=begin HELP
+#
+# Usage: pgenv env [-w|-e] [-v|--version <version>|<filename>]
+#
+# Edit enviroment variables for postgresql.
+#
+#
+# SYNOPSIS
+#   pgenv env -w -v 10.3
+#   pgenv env -e mytest.sh
+#
+# OPTIONS
+#   -v, --version <version>
+#     Version to edit.
+#
+#   -w, --write
+#     Write environment variables into the file.
+#
+#   -e, --edit
+#     Edit environment variables and save into the file.
+#
+# SHELL VARIABLES
+#   - EDITOR
+#     To use your default editor, set the command path to the editor to EDITOR environment variable.
+#     Ex: export EDITOR=/usr/bin/vim
+#
+#
+#=end HELP
