@@ -107,6 +107,9 @@ EOF
 parse_options "$@"
 
 if [ ${options[edit]} -eq 1 ]; then
+  if [ ! -f "$pgenv_instance_env_file" ]; then
+    create_env_tempfile
+  fi
   $EDITOR "$pgenv_instance_env_file"
 elif [ ${options[write]} -eq 1 ]; then
   if [ -f "$pgenv_instance_env_file" ]; then
