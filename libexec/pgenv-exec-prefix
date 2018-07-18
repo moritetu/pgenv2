@@ -64,7 +64,7 @@ show_prefix_and_run() {
       log_trace "no version"
       exit 0
     fi
-    version_name="$(basename -- "$(cd -P -- "$PGENV_DEFAULT_LINK" && pwd -P)")"
+    version_name="$(basename -- "$(readlink "$PGENV_DEFAULT_LINK")")"
   else
     version_name="${options[version]}"
   fi
