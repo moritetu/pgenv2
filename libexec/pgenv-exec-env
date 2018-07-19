@@ -61,11 +61,11 @@ parse_options() {
 }
 
 
-# create_env_tempfile
-#   Create a temporary file for editing environment variables.
+# write_env
+#   Write environment variables.
 #
-create_env_tempfile() {
-  cat <<EOF > "$pgenv_instance_env_file"
+write_env() {
+  cat <<EOF
 # Created by pgenv at $(date +'%Y-%m-%d %H:%M:%S')
 export PGHOST=localhost           # host
 #export PGHOSTADDR=127.0.0.1      # hostaddr
@@ -108,15 +108,17 @@ parse_options "$@"
 
 if [ ${options[edit]} -eq 1 ]; then
   if [ ! -f "$pgenv_instance_env_file" ]; then
-    create_env_tempfile
+    write_env > "$pgenv_instance_env_file"
   fi
   $EDITOR "$pgenv_instance_env_file"
 elif [ ${options[write]} -eq 1 ]; then
   if [ -f "$pgenv_instance_env_file" ]; then
     abort "error: file already exists: $pgenv_instance_env_file"
   fi
-  create_env_tempfile
+  write_env > "$pgenv_instance_env_file"
   println "file created: $pgenv_instance_env_file"
+else
+  write_env
 fi
 
 
@@ -137,6 +139,7 @@ exit $?
 #
 #
 # SYNOPSIS
+#   pgenv env
 #   pgenv env -w -v 10.3
 #   pgenv env -e mytest.sh
 #
