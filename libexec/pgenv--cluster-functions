@@ -121,8 +121,9 @@ do_basebackup() {
     cd "$PGENV_CLUSTER_ROOT"
     instance_dir="$(resolve_link "$instance_dir")"
 
+    local pgver="$(echo "${pg_setup_version}" | tr a-zA-Z .)"
     # version 10
-    if [ "${pg_setup_version%%.*}" = "10" ]; then
+    if [ "${pgver%%.*}" -ge "10" ]; then
       log_trace "==> pg_basebackup (later than 10): connect to localhost:$port"
       eval "$(switch_context && pwd)/bin/pg_basebackup" -R -w \
            -D "$instance_dir" --wal-method=stream -P -v -p $port -h localhost \
@@ -228,7 +229,7 @@ inspect_replication_tree() {
                       -p $port \
                       -c "select application_name from pg_stat_replication" 2> /dev/null)) || status=$?
 
-        echo "replication_tree[\"$instance\"]=\"${children[@]}\""
+        echo "replication_tree[\"$instance\"]=\"${children[@]:-}\""
 
         replication_tree["$instance"]="${children[@]:-}"
       fi
@@ -420,7 +421,7 @@ get_instance_port() {
     echo "$primary_port"
   else
     idx="$(get_standby_node_index "$instance_name")"
-    if [ $idx -lt 0 ]; then
+    if [ "$idx" -lt "0" ]; then
       echo ""
     else
       echo "${all_standby_ports[$idx]:-""}"

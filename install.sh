@@ -8,7 +8,7 @@ function __install_pgenv() {
   local BASH_PROFILE=~/.bash_profile
   local ident="$(/bin/date +%s)"
   local temporary_file="$BASH_PROFILE.$ident"
-  sed -e '/### start pgenv/,/### end pgenv/d' "$BASH_PROFILE" > $temporary_file
+  sed -e '/### start pgenv/,/### end pgenv/d' "$BASH_PROFILE" > "$temporary_file"
   cat <<EOS >> "$temporary_file"
 ### start pgenv
 source "$HERE/profile"
@@ -17,16 +17,16 @@ EOS
   if [ $? -ne 0 ]; then
     echo "error: failed to write setting into '$temporary_file'" >&2
     /bin/rm "$temporary_file"
-    exit 1
+    return 1
   fi
   mv "$temporary_file" "$BASH_PROFILE"
   if [ $? -ne 0 ]; then
     echo "error: failed to mv $temporary_file to $BASH_PROFILE'" >&2
     /bin/rm "$temporary_file"
-    exit 1
+    return 1
   fi
   source "$BASH_PROFILE"
 }
 
-__install_pgenv
+__install_pgenv || echo "error: failed to install" >&2
 unset -f __install_pgenv
