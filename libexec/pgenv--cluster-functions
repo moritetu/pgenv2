@@ -122,8 +122,14 @@ do_basebackup() {
     instance_dir="$(resolve_link "$instance_dir")"
 
     local pgver="$(echo "${pg_setup_version}" | tr a-zA-Z .)"
+    # version 11
+    if [ "${pgver%%.*}" -ge "11" ]; then
+      log_trace "==> pg_basebackup (later than 11): connect to localhost:$port"
+      eval "$(switch_context && pwd)/bin/pg_basebackup" -R -w \
+           -D "$instance_dir" --wal-method=stream -P -v -p $port -h localhost \
+           --dbname="application_name=$(basename -- "$instance_dir")"
     # version 10
-    if [ "${pgver%%.*}" -ge "10" ]; then
+    elif [ "${pgver%%.*}" -ge "10" ]; then
       log_trace "==> pg_basebackup (later than 10): connect to localhost:$port"
       eval "$(switch_context && pwd)/bin/pg_basebackup" -R -w \
            -D "$instance_dir" --wal-method=stream -P -v -p $port -h localhost \

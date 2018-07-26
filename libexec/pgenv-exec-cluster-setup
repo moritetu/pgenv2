@@ -269,7 +269,7 @@ EOF
       cd "$PGENV_CLUSTER_ROOT"
 
       replace_string_in_file "replace" "$standby_server/recovery.conf" \
-                             "passfile=''.*''" ""
+                             "passfile=''[^']*''" ""
       replace_string_in_file "replace" "$standby_server/recovery.conf" \
                              "target_session_attrs=[^ ']*" ""
 
