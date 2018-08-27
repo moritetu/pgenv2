@@ -370,7 +370,7 @@ exit $?
 #   pgenv install --install-dir /path/to/debug1 --only-install 10.3
 #
 # OPTIONS
-#   a-, --alias <name>
+#   -a, --alias <name>
 #     Set alias name.
 #
 #   -d, --debug
