@@ -117,7 +117,7 @@ esac
 unset -v arguments[0]
 
 # Execute sub command.
-exec "$pg_cluster_command" "${arguments[@]}"
+exec "$pg_cluster_command" "${arguments[@]:-}"
 
 
 #=begin COMMAND
