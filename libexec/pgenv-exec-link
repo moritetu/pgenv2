@@ -56,7 +56,11 @@ parse_options() {
     else
       abort "error: path must be directory or symbolic link: $pg_link_path"
     fi
+  elif [ ! -d "$pg_link_path" ]; then
+    abort "error: path must be directory or symbolic link: $pg_link_path"
   fi
+
+
 
   pg_link_name="${arguments[1]}"
 }

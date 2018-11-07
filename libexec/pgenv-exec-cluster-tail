@@ -91,6 +91,10 @@ tail_logs() {
       fi
     done
 
+    if [ ${#targets[@]} -eq 0 ]; then
+      echo "nothing logs to tail"
+      exit
+    fi
     log_trace "==> target logs: ${targets[@]}"
     eval tail $tail_options "${targets[@]}"
   )
