@@ -118,14 +118,12 @@ show_configure_options() {
     if [ -f "$version_configure" ]; then
       cat "$version_configure"
     fi
-  elif [ ${options[default]} -eq 1 ]; then
-    if [ -f "$default_configure_options_file" ]; then
-      cat "$default_configure_options_file"
-    fi
   else
     local version_configure="$PGENV_ROOT/configure_options-${pg_configure_version}"
     if [ -f "$version_configure" ]; then
       cat "$version_configure"
+    elif [ -f "$default_configure_options_file" ]; then
+      cat "$default_configure_options_file"
     fi
   fi
   :
@@ -135,10 +133,10 @@ show_configure_options() {
 # Parse command line options.
 parse_options "$@"
 
-if [ ${options[list]} -eq 1 ]; then
-  show_configure_options
-elif [ ${options[edit]} -eq 1 ]; then
+if [ ${options[edit]} -eq 1 ]; then
   edit_configure_options
+else
+  show_configure_options
 fi
 
 exit $?
@@ -164,7 +162,7 @@ exit $?
 #   --with-libxml
 #   EOF
 #   pgenv configure -e --default
-#   pgenv configure -l --default
+#   pgenv configure [-l --default]
 #
 # OPTIONS
 #   -e, --edit

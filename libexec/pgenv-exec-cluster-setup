@@ -99,7 +99,7 @@ configure_cluster_setting() {
   # Set global variable.
   primary_server="${arguments[0]}"
   instance_info=( $(split_instance_strings "$primary_server") )
-  test ${instance_info[1]} -eq 0 && {
+  test ${instance_info[1]:-0} -eq 0 && {
     log_trace "assign port: instance=${instance_info[0]} port=$pg_start_port"
     primary_port="$pg_start_port"
     ((pg_start_port+=1))
@@ -370,6 +370,7 @@ cleanup_cluster() {
     /bin/rm -rf "$PGENV_CLUSTER_ROOT"
   fi
 }
+
 
 # Parse command line options.
 parse_options "$@"

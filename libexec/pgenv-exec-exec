@@ -87,7 +87,8 @@ parse_options() {
   fi
 
   if [ -z "$exec_command" ] && [ -z "$exec_scriptfile" ]; then
-    abort "command or scriptfile is required"
+    error "error: command or scriptfile is required"
+    abort "hint: See 'pgenv exec -h'."
   fi
 }
 

@@ -99,7 +99,7 @@ case ${arguments[0]:-""} in
       abort "hint: pass other directory or remove it before setup."
     fi
     ;;
-  start|stop|status|ctrl|tail)
+  start|stop|status|ctrl|tail|"exec")
     (
       if [ ! -f "$PGENV_CLUSTER_ROOT"/"$PGENV_CLUSTER_CONFIG" ]; then
         error "error: '$PGENV_CLUSTER_ROOT' does not look like a cluster directory."
@@ -117,7 +117,11 @@ esac
 unset -v arguments[0]
 
 # Execute sub command.
-exec "$pg_cluster_command" "${arguments[@]:-}"
+if [ ${#arguments[@]} -gt 0 ]; then
+  exec "$pg_cluster_command" "${arguments[@]:-""}"
+fi
+
+exec "$pg_cluster_command"
 
 
 #=begin COMMAND
@@ -139,7 +143,8 @@ exec "$pg_cluster_command" "${arguments[@]:-}"
 #   stop       Stop cluster
 #   status     Show cluster status
 #   ctrl       Add or remove node from cluster
-#   tail       Tail logs.
+#   tail       Tail logs
+#   exec       Execute commands on a node
 #
 # OPTIONS
 #   -D <directory>
