@@ -1,0 +1,110 @@
+#!/usr/bin/env bash
+
+set -eu
+
+source "$PGENV_LIBEXEC"/pgenv--load
+source "$PGENV_LIBEXEC"/pgenv--cluster-functions
+
+
+# The target node
+target_node=
+
+commands=()
+
+OLDPWD="$PWD"
+
+
+#: parse_options [arg ...]
+#:   Parse command line options.
+#:
+parse_options() {
+
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      -*)
+        abort "error: $(self): invalid option: $1"
+        ;;
+      *)
+        target_node="$1"
+        shift
+        break
+        ;;
+    esac
+    shift
+  done
+
+  if [ -z "${target_node:-}" ]; then
+    error "error: target node is not specified"
+    abort "hint: See 'pgenv cluster exec -h'"
+  fi
+
+  if [ ! -e "$PGENV_CLUSTER_ROOT/$target_node" ]; then
+    error "error: target node is invalid"
+    abort "hint: '$PGENV_CLUSTER_ROOT/$target_node' does not exist."
+  fi
+
+  commands="$*"
+}
+
+#: exec_command_on_target_node
+#:   Execute commands on a target node.
+#:
+exec_commands_on_target_node() {
+  local port="$(get_instance_port "$target_node")"
+  local pgdata="$PGENV_CLUSTER_ROOT/$target_node"
+
+  if [ -z "${port:-}" ]; then
+    error "error: port of the target node '$target_node' is invalid."
+    abort "hint: See 'pgenv cluster -D $PGENV_CLUSTER_ROOT status'"
+  fi
+
+  # Set default environments
+  export PGPORT=$port
+  export PGDATA="$pgdata"
+  export PGDATABASE=postgres
+
+  # Execute commands
+  if [ -s /dev/stdin ]; then
+    pgenv exec
+  elif [ -n "${commands}" ]; then
+    pgenv exec "${commands:-}"
+  else
+    error "error: commands must be passed"
+    abort "hint: See 'pgenv cluster exec -h'"
+  fi
+}
+
+load_cluster_setting
+
+# Parse command line options.
+parse_options "$@"
+
+# Execute commands.
+exec_commands_on_target_node
+
+exit $?
+
+
+#=begin SUBCOMMAND
+#
+# cluster exec     Execute commands on a target node.
+#
+#=end SUBCOMMAND
+
+
+#=begin HELP
+#
+# Usage: pgenv cluster exec <node> <commands>
+#
+# Execute commands on a target node.
+#
+#
+# SYNOPSIS
+#   pgenv cluster -D /path/to/cluster exec primary pg_ctl reload
+#   pgenv cluster -D /path/to/cluster exec primary "psql -c '\conninfo'"
+#   pgenv cluster -D /path/to/cluster exec primary <<SQL
+#   psql -x -c "select * from pg_stat_replication"
+#   SQL
+#
+
+#=end HELP
