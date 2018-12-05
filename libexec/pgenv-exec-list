@@ -69,6 +69,9 @@ show_installed_versions() {
 
   log_trace "==> ${available_versions[@]}"
 
+  if [ ${#available_versions[@]} -lt 0 ]; then
+    exit
+  fi
 
   if [ ${options[list]} -eq 1 ]; then
     for version_directory in "${available_versions[@]}"; do
