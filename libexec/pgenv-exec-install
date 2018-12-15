@@ -242,7 +242,7 @@ install_pg() {
 
   # If debug option, add '--enable-debug'.
   if [ ${options[debug]} -eq 1 ]; then
-    configure_options="$configure_options --enable-debug"
+    configure_options="$configure_options --enable-debug --enable-cassert"
   fi
 
   log_info "$configure_options"
@@ -250,6 +250,17 @@ install_pg() {
   # Build!
   log_info "log: $install_log (pgenv prefix --root cat $install_log)"
   log_info "==> configure"
+
+  # Change optimization level.
+  local cflags=""
+  if [ ${options[debug]} -eq 1 ]; then
+    log_info "==> set CFLAGS='-O0'"
+    cflags="-O0"
+    if [ ${options[g3]} -eq 1 ]; then
+    log_info "==> set CFLAGS='-g3 -O0'"
+      cflags="-g3 $cflags"
+    fi
+  fi
 
   status=0
   if [ ${options[verbose]} -eq 1 ]; then
@@ -261,7 +272,7 @@ install_pg() {
       # configure
       cd "$source_dir"
       chmod +x configure
-      eval "./configure ${configure_options}"
+      eval "./configure ${configure_options} CFLAGS='$cflags'"
     ) |& tee -a "$install_log" || status=$?
   else
     (
@@ -272,7 +283,7 @@ install_pg() {
       # configure
       cd "$source_dir"
       chmod +x configure
-      eval "./configure ${configure_options}"
+      eval "./configure ${configure_options} CFLAGS='$cflags'"
     ) >> "$install_log" 2>&1 || status=$?
 
   fi
@@ -280,20 +291,6 @@ install_pg() {
   if [ $status -ne 0 ]; then
     log_error "failed to configure"
     abort "hint: please check configure options: see 'pgenv prefix --root cat $install_log'"
-  fi
-
-  # Change optimization level.
-  if [ ${options[debug]} -eq 1 ]; then
-    log_info "==> replace CFLAGS '-O0'"
-    local makefile_g="$source_dir/src/Makefile.global"
-    local makefile_g_bak="$source_dir/src/Makefile.global.bak"
-    local gx=""
-    if [ ${options[g3]} -eq 1 ]; then
-      gx="-g3"
-    fi
-    log_trace "sed -e 's/ -g -O2/ $gx -O0/' $makefile_g"
-    sed -e "s/ -g -O2/ $gx -O0/" "$makefile_g" > "$makefile_g_bak"
-    mv -f "$makefile_g_bak" "$makefile_g"
   fi
 
   # Make install.
