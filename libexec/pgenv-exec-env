@@ -10,6 +10,7 @@ options=(
   [version]=
   [write]=0
   [edit]=0
+  [sys]=
 )
 
 # Arguments array
@@ -40,6 +41,9 @@ parse_options() {
       -w|--write)
         options[write]=1
         ;;
+      -s|--system)
+        options[sys]=1
+        ;;
       -e|--edit)
         options[edit]=1
         ;;
@@ -65,6 +69,17 @@ parse_options() {
 #   Write environment variables.
 #
 write_env() {
+  cat <<EOF
+# System environment
+export PATH="$(pgenv prefix -v $pg_version --bin)":"\$PATH"
+export POSTGRES_HOME="$(pgenv prefix -v $pg_version)"
+export PGLIB="\$POSTGRES_HOME/lib"
+export LD_LIBRARY_PATH="\$PGLIB":"\$LD_LIBRARY_PATH"
+EOF
+
+  if [ ${options[sys]} -eq 1 ];then
+    return
+  fi
   cat <<EOF
 # Created by pgenv at $(date +'%Y-%m-%d %H:%M:%S')
 export PGHOST=localhost           # host
@@ -144,14 +159,19 @@ exit $?
 #   pgenv env -e mytest.sh
 #
 # OPTIONS
+#   -e, --edit
+#     Edit environment variables and save into the file.
+#
+#   -s, --system
+#     Show only system environment variables.
+#     ex: PATH, LD_LIBRARY_PATH
+#
 #   -v, --version <version>
 #     Version to edit.
 #
 #   -w, --write
 #     Write environment variables into the file.
 #
-#   -e, --edit
-#     Edit environment variables and save into the file.
 #
 # SHELL VARIABLES
 #   - EDITOR
