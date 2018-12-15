@@ -63,15 +63,18 @@ exec_commands_on_target_node() {
   export PGDATA="$pgdata"
   export PGDATABASE=postgres
 
-  # Execute commands
-  if [ -s /dev/stdin ]; then
-    pgenv exec
-  elif [ -n "${commands}" ]; then
-    pgenv exec "${commands:-}"
-  else
-    error "error: commands must be passed"
-    abort "hint: See 'pgenv cluster exec -h'"
-  fi
+  (
+    cd "$pgdata"
+    # Execute commands
+    if [ -s /dev/stdin ]; then
+      pgenv exec
+    elif [ -n "${commands}" ]; then
+      pgenv exec "${commands:-}"
+    else
+      error "error: commands must be passed"
+      abort "hint: See 'pgenv cluster exec -h'"
+    fi
+  )
 }
 
 load_cluster_setting
@@ -97,6 +100,8 @@ exit $?
 # Usage: pgenv cluster exec <node> <commands>
 #
 # Execute commands on a target node.
+# 'exec' command changes current directory to <node>/PGDATA before
+# running commands.
 #
 #
 # SYNOPSIS
