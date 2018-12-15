@@ -202,9 +202,9 @@ install_pg() {
   if [ ${options[refresh]} -eq 1 ]; then
     log_info "==> make clean"
     if [ ${options[verbose]} -eq 1 ]; then
-      make clean |& tee -a "$install_log"
+      make clean |& tee -a "$install_log" || true
     else
-      make clean >> "$install_log" 2>&1
+      make clean >> "$install_log" 2>&1  || true
     fi
   fi
 
@@ -308,24 +308,28 @@ install_pg() {
   log_info "==> make $make_command"
   if [ ${options[verbose]} -eq 1 ]; then
     (
-      if [ -f "$pg_build_env" ]; then
-        log_trace "include: $pg_build_env"
-        source "$pg_build_env" "configure"
-      fi
+      {
+        if [ -f "$pg_build_env" ]; then
+          log_trace "include: $pg_build_env"
+          source "$pg_build_env" "configure"
+        fi
 
-      cd "$source_dir"
-      make $make_command
+        cd "$source_dir"
+        make $make_command
+      } 2>&1
     ) |& tee -a "$install_log" || status=$?
   else
     (
-      if [ -f "$pg_build_env" ]; then
-        log_trace "include: $pg_build_env"
-        source "$pg_build_env" "configure"
-      fi
+      {
+        if [ -f "$pg_build_env" ]; then
+          log_trace "include: $pg_build_env"
+          source "$pg_build_env" "configure"
+        fi
 
-      cd "$source_dir"
-      make $make_command
-    ) >> "$install_log" 2>&1 || status=$?
+        cd "$source_dir"
+        make $make_command
+      } 2>&1
+    ) >> "$install_log" || status=$?
   fi
 
   if [ $status -ne 0 ]; then
