@@ -10,7 +10,7 @@ options=(
   [world]=0
   [alias]=
   [debug]=0
-  [O3]=0
+  [g3]=0
   [refresh]=0
   [optsfile]=
   [configure_opts]=""
@@ -66,7 +66,7 @@ parse_options() {
       -f|--force)      options[force]=1         ;;
       -w|--world)      options[world]=1         ;;
       -v|--verbose)    options[verbose]=1       ;;
-      --O3)            options[O3]=1            ;;
+      --g3)            options[g3]=1            ;;
       --only-install)  options[only_install]=1  ;;
       -a|--alias)
         shift
@@ -283,12 +283,16 @@ install_pg() {
   fi
 
   # Change optimization level.
-  if [ ${options[O3]} -eq 1 -a ${options[debug]} -eq 1 ]; then
-    log_info "==> replace CFLAGS '-O3'"
+  if [ ${options[debug]} -eq 1 ]; then
+    log_info "==> replace CFLAGS '-O0'"
     local makefile_g="$source_dir/src/Makefile.global"
     local makefile_g_bak="$source_dir/src/Makefile.global.bak"
-    log_trace "sed -e 's/ -g -O2/ -g -O3/' $makefile_g"
-    sed -e 's/ -g -O2/ -g -O3/' "$makefile_g" > "$makefile_g_bak"
+    local gx=""
+    if [ ${options[g3]} -eq 1 ]; then
+      gx="-g3"
+    fi
+    log_trace "sed -e 's/ -g -O2/ $gx -O0/' $makefile_g"
+    sed -e "s/ -g -O2/ $gx -O0/" "$makefile_g" > "$makefile_g_bak"
     mv -f "$makefile_g_bak" "$makefile_g"
   fi
 
