@@ -74,7 +74,7 @@ write_env() {
 export PATH="$(pgenv prefix -v $pg_version --bin)":"\$PATH"
 export POSTGRES_HOME="$(pgenv prefix -v $pg_version)"
 export PGLIB="\$POSTGRES_HOME/lib"
-export LD_LIBRARY_PATH="\$PGLIB":"\$LD_LIBRARY_PATH"
+export LD_LIBRARY_PATH="\$PGLIB":"\${LD_LIBRARY_PATH:-}"
 EOF
 
   if [ ${options[sys]} -eq 1 ];then

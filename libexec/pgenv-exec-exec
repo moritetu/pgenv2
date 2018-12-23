@@ -109,7 +109,7 @@ execute_commands() {
   export PATH="$installdir/bin":"$PATH"
   export POSTGRES_HOME="$installdir"
   export PGLIB="$POSTGRES_HOME/lib"
-  export LD_LIBRARY_PATH="$PGLIB:$LD_LIBRARY_PATH"
+  export LD_LIBRARY_PATH="$PGLIB:${LD_LIBRARY_PATH:-}"
 
   # Include environment file
   local include_envfile="$pgenv_env_filename"

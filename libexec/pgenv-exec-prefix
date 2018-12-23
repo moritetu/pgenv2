@@ -96,7 +96,7 @@ show_prefix_and_run() {
     export PATH="$PWD/bin":"$PATH"
     export POSTGRES_HOME="$PWD"
     export PGLIB="$POSTGRES_HOME/lib"
-    export LD_LIBRARY_PATH="$PGLIB:$LD_LIBRARY_PATH"
+    export LD_LIBRARY_PATH="$PGLIB:${LD_LIBRARY_PATH:-}"
 
     if [ ${options[bin]} -eq 1 ]; then
       cd bin || abort "$error_message"
