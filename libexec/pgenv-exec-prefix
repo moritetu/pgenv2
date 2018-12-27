@@ -60,11 +60,9 @@ show_prefix_and_run() {
   local version_name=""
   if [ -z "${options[version]}" ]; then
     # Nothing to do.
-    if [ ! -h "$PGENV_DEFAULT_LINK" ]; then
-      log_trace "no version"
-      exit 0
+    if [ -h "$PGENV_DEFAULT_LINK" ]; then
+      version_name="$(basename -- "$(readlink "$PGENV_DEFAULT_LINK")")"
     fi
-    version_name="$(basename -- "$(readlink "$PGENV_DEFAULT_LINK")")"
   else
     version_name="${options[version]}"
   fi
