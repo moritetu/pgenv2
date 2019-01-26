@@ -6,7 +6,7 @@ const char *progname;
 /* these are the opts structures for command line params */
 typedef struct options
 {
-  int flag;
+	int flag;
 } Options;
 
 
@@ -21,7 +21,7 @@ help(const char *progname)
 		   "  %s [OPTION]...\n"
 		   "\nOptions:\n"
 		   "  -?, --help     show this help, then exit\n"
-       "\nDescription\n\n"
+		   "\nDescription\n\n"
 		   "Report bugs to <example@example.com>.\n",
 		   progname, progname);
 }
@@ -30,12 +30,12 @@ help(const char *progname)
 int
 main(int argc, char **argv)
 {
-  int c;
-  Options *my_opts;
+	int c;
+	Options *my_opts;
 
-  my_opts = (Options *) pg_malloc(sizeof(Options));
+	my_opts = (Options *) pg_malloc(sizeof(Options));
 
-  my_opts->flag = 0;
+	my_opts->flag = 0;
 
 	progname = get_progname(argv[0]);
 
@@ -69,5 +69,5 @@ main(int argc, char **argv)
 		}
 	}
 
-  return 0;
+	return 0;
 }
