@@ -1,6 +1,6 @@
-MODULES = myext
-EXTENSION = myext
-DATA = myext--1.0.sql
+MODULES = %extname%
+EXTENSION = %extname%
+DATA = %extname%--1.0.sql
 
 ifdef PG_PORT
 REGRESS_OPTS += --port $(PG_PORT)

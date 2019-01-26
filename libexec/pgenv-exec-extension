@@ -11,7 +11,7 @@ arguments=()
 ext_command=""
 
 # Template based on copy
-template="$PGENV_ROOT/templates/myext"
+template="$PGENV_ROOT/templates/default"
 
 # Output/Extension directory
 extdir=""
@@ -20,7 +20,10 @@ extdir=""
 pg_version="$(pgenv -s current)"
 
 
-declare -A variables=()
+declare -A variables=(
+  [extname]="myext"
+)
+
 declare -A options=(
   [force]=0
   [template]=
@@ -126,18 +129,28 @@ init_project() {
     fi
   fi
 
-  /bin/cp -rf "$template"/* "$extdir/"
-  for file in $(find "$extdir" -type f); do
-    log_trace "replace place holders: $file"
-    local bak_file="$file.bak"
-    sed -e "1,$ {
-      $(make_replace_strings_rule)
-    }" "$file" > "$bak_file"
-    mv -f "$bak_file" "$file"
-    if [[ "$file" =~ .*\.sh ]]; then
-      chmod +x "$file"
-    fi
-  done
+  (
+    tplname="$(basename "$template")"
+    tplroot="$(dirname "$template")"
+    placeholders="$(make_replace_strings_rule)"
+    log_trace "replace place holders: $placeholders"
+
+    cd "$template"
+
+    for file in $(find . -type f); do
+      log_trace "filename: $file"
+      filename="$(echo "$file" | sed -e "{
+        $placeholders
+      }")"
+      log_trace "template/$file -> $filename"
+
+      mkdir -p "$extdir/$(dirname "$filename")"
+
+      sed -e "1,$ {
+        $placeholders
+      }" "$file" > "$extdir/$filename"
+    done
+  )
 }
 
 

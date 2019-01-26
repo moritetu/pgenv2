@@ -4,7 +4,7 @@
 
 PG_MODULE_MAGIC;
 
-PG_FUNCTION_INFO_V1(myext);
+PG_FUNCTION_INFO_V1(%extname%);
 
 Datum
 myext(PG_FUNCTION_ARGS)
