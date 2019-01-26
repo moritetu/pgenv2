@@ -404,7 +404,7 @@ text_color() {
   local msg="$1"
   shift
   text_color_on "$@"
-  printf "$msg"
+  printf "%b" "$msg"
   text_color_off
 }
 
