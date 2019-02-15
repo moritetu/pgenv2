@@ -52,7 +52,7 @@ parse_options() {
   done
 
   if [ ${#arguments[@]} -eq 0 ]; then
-    pg_configure_version="$(basename -- "$(readlink  "$PGENV_ROOT"/"$PGENV_DEFAULT_LINK")")"
+    pg_configure_version="$(basename "$(readlink  "$PGENV_ROOT"/"$PGENV_DEFAULT_LINK")")"
   else
     pg_configure_version="${arguments[0]}"
   fi
@@ -111,18 +111,30 @@ edit_configure_options() {
 show_configure_options() {
   if [ ${options[local]} -eq 1 ]; then
     if [ -f "$local_configure_options_file" ]; then
-       cat "$local_configure_options_file"
+      echo "#$local_configure_options_file"
+      cat "$local_configure_options_file"
     fi
   elif [ ${options[global]} -eq 1 ]; then
     local version_configure="$PGENV_ROOT/configure_options-${pg_configure_version}"
     if [ -f "$version_configure" ]; then
+      echo "#$version_configure"
       cat "$version_configure"
     fi
+  elif [ ${options[default]} -eq 1 ]; then
+    if [ -f "$default_configure_options_file" ]; then
+      echo "#$default_configure_options_file"
+      cat "$default_configure_options_file"
+    fi
   else
-    local version_configure="$PGENV_ROOT/configure_options-${pg_configure_version}"
-    if [ -f "$version_configure" ]; then
+    if [ -f "$local_configure_options_file" ]; then
+      echo "#$local_configure_options_file"
+      cat "$local_configure_options_file"
+    elif [ -f "$version_configure" ]; then
+      local version_configure="$PGENV_ROOT/configure_options-${pg_configure_version}"
+      echo "#$version_configure"
       cat "$version_configure"
     elif [ -f "$default_configure_options_file" ]; then
+      echo "#$default_configure_options_file"
       cat "$default_configure_options_file"
     fi
   fi
@@ -162,7 +174,7 @@ exit $?
 #   --with-libxml
 #   EOF
 #   pgenv configure -e --default
-#   pgenv configure [-l --default]
+#   pgenv configure [--global <current version> || -l --default]
 #
 # OPTIONS
 #   -e, --edit
@@ -172,7 +184,7 @@ exit $?
 #     Show configure options.
 #
 #   --local
-#     Local configure options. Local file is '.pgenv_configure_opts' in current directory.
+#     Local configure options. Local file is 'pgenv_configure_opts' in current directory.
 #
 #   --global
 #     Global configure options of current context. The file is $PGENV_ROOT/configure_options-<version>.
