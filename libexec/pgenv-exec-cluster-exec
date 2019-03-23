@@ -65,9 +65,10 @@ exec_commands_on_target_node() {
 
   (
     cd "$pgdata"
+
     # Execute commands
-    if [ -s /dev/stdin ]; then
-      pgenv exec
+    if [ -s /dev/stdin ] || [ -p /dev/stdin ]; then
+      cat - | pgenv exec "${commands:-}"
     elif [ -n "${commands}" ]; then
       pgenv exec "${commands:-}"
     else

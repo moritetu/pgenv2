@@ -208,12 +208,13 @@ setup_cluster() {
     abort "stop"
   fi
 
+  local standby_num=$(( ${#synchronous_standby_servers[@]} + ${#asynchronous_standby_servers[@]} ))
+  local archive_dir="$(resolve_link archivedir)"
+
   (
     cd "$PGENV_CLUSTER_ROOT"
 
     local include_file="$(resolve_link "${primary_server}.conf")"
-    local archive_dir="$(resolve_link archivedir)"
-    local standby_num=$(( ${#synchronous_standby_servers[@]} + ${#asynchronous_standby_servers[@]} ))
 
     # Create include file for primary
     log_info "create include file for primary: $include_file"
@@ -265,13 +266,9 @@ EOF
       abort "stop"
     fi
 
+    local pgver=$(current_pg_version)
     (
       cd "$PGENV_CLUSTER_ROOT"
-
-      replace_string_in_file "replace" "$standby_server/recovery.conf" \
-                             "passfile=''[^']*''" ""
-      replace_string_in_file "replace" "$standby_server/recovery.conf" \
-                             "target_session_attrs=[^ ']*" ""
 
       local include_file="$(resolve_link ${standby_server}.conf)"
       local port="$pg_start_port"
@@ -284,16 +281,23 @@ wal_keep_segments = 16
 hot_standby = on
 logging_collector = on
 log_filename = 'postgresql-%Y-%m-%d.log'
+max_wal_senders = $((10 + $standby_num))
 EOF
       # Set include file (to overwrite settings)
       replace_string_in_file "del" "$standby_server/postgresql.conf" \
                              "include = " "include = '$include_file'"
 
-      cat <<EOF >> "$standby_server/recovery.conf"
+      if version_later_than 12 &> /dev/null; then
+        cat <<EOF >> "${standby_server}.conf"
 recovery_target_timeline = 'latest'
 #restore_command = 'cp "$(resolve_link "archivedir")/%f" "%p"'
 EOF
-
+      else
+        cat <<EOF >> "$standby_server/recovery.conf"
+recovery_target_timeline = 'latest'
+#restore_command = 'cp "$(resolve_link "archivedir")/%f" "%p"'
+EOF
+      fi
     )
 
     log_info "start standby instance"

@@ -58,10 +58,6 @@ parse_options() {
     shift
   done
 
-  if [ -s /dev/stdin ]; then
-    exec_command="$(cat -)"
-  fi
-
   if [ -n "${options[scriptfile]}" ]; then
     if [ ! -f "${options[scriptfile]}" ]; then
       abort "error: file does not exist: ${options[scriptfile]}"
@@ -86,7 +82,7 @@ parse_options() {
     pgenv_env_filename="${options[envfile]}"
   fi
 
-  if [ -z "$exec_command" ] && [ -z "$exec_scriptfile" ]; then
+  if [ -z "$exec_command" ] && [ -z "$exec_scriptfile" ] && [ ! -s /dev/stdin ]; then
     error "error: command or scriptfile is required"
     abort "hint: See 'pgenv exec -h'."
   fi
@@ -130,7 +126,13 @@ execute_commands() {
   fi
 
   # Execute commands
-  if [ -n "$exec_command" ]; then
+  if [ -s /dev/stdin ] || [ -p /dev/stdin ]; then
+    if [ -z "$exec_command" ]; then
+      eval "$(cat -)"
+    else
+      cat - | $exec_command
+    fi
+  elif [ -n "$exec_command" ]; then
     log_trace "==> execute commands"
     log_trace "$exec_command"
     eval "$exec_command"

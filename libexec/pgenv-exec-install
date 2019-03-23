@@ -360,7 +360,7 @@ exit $?
 
 #=begin HELP
 #
-# Usage: pgenv install [-d|--debug] [--O3] [--configure-options-file <file>] [--configure-options "<options>"]
+# Usage: pgenv install [-d|--debug] [--g3] [--configure-options-file <file>] [--configure-options "<options>"]
 #                      [-r|--refresh|-f|--force] [-w|--world]
 #                      [-a|-alias <name>] [-v|--verbose] [--install-dir <dir>]
 #                      [--only-install] <version>

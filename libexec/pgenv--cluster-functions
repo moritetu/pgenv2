@@ -59,6 +59,19 @@ switch_context() {
   }
 }
 
+#: current_pg_version
+#:   Return current postgres version.
+#:
+#: ex:
+#:   current_pg_version
+#:
+current_pg_version() {
+  local pgverinfo=( $(psql -V) )
+  local pgver=${pgverinfo[2]}
+  pgver=${pgver//[a-zA-Z]/}
+  echo "$pgver"
+}
+
 #: check_pg_version <version>
 #:   Check whether the specified version equals pg_setup_version.
 #:
@@ -67,7 +80,7 @@ switch_context() {
 #:
 check_pg_version() {
   local ver="$1"
-  test "${pg_setup_version%%.*}" = "$ver"
+  test "$(current_pg_version)" = "$ver"
 }
 
 #: version_later_than <version>
@@ -78,7 +91,7 @@ check_pg_version() {
 #:
 version_later_than() {
   local ver="$1"
-  (( "${pg_setup_version%%.*}" <= "$ver" ))
+  (( $(current_pg_version) <= $ver ))
 }
 
 
@@ -121,7 +134,8 @@ do_basebackup() {
     cd "$PGENV_CLUSTER_ROOT"
     instance_dir="$(resolve_link "$instance_dir")"
 
-    local pgver="$(echo "${pg_setup_version}" | tr a-zA-Z .)"
+    local pgver=$(current_pg_version)
+
     # version 11
     if [ "${pgver%%.*}" -ge "11" ]; then
       log_trace "==> pg_basebackup (later than 11): connect to localhost:$port"
