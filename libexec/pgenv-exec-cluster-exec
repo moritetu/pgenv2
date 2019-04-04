@@ -108,8 +108,8 @@ exit $?
 # SYNOPSIS
 #   pgenv cluster -D /path/to/cluster exec primary pg_ctl reload
 #   pgenv cluster -D /path/to/cluster exec primary "psql -c '\conninfo'"
-#   pgenv cluster -D /path/to/cluster exec primary <<SQL
-#   psql -x -c "select * from pg_stat_replication"
+#   pgenv cluster -D /path/to/cluster exec primary psql -x <<SQL
+#   select * from pg_stat_replication
 #   SQL
 #
 

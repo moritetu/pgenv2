@@ -174,6 +174,10 @@ exit $?
 #   pgenv exec -v 9.6 initdb pgdata96
 #   pgenv exec -e myenv initdb pgdata
 #   pgenv exec -e myenv -f my.sh "initdb pgdata"
+#   echo "\conninfo" | pgenv exec
+#   pgenv exec psql -x -d postgres <<SQL
+#   select * from pg_stat_activity
+#   SQL
 #
 # OPTIONS
 #   -v, --version <version>
