@@ -14,6 +14,7 @@ options=(
   [include]=0
   [share]=0
   [version]=""
+  [samples]=0
 )
 
 # Arguments array
@@ -26,12 +27,13 @@ arguments=()
 parse_options() {
   while [ $# -gt 0 ]; do
     case "$1" in
-      --root)      options[root]=1     ;;
-      --source)    options[source]=1   ;;
-      --bin)       options[bin]=1      ;;
-      --lib)       options[lib]=1      ;;
-      --include)   options[include]=1  ;;
-      --share)     options[share]=1    ;;
+      -r|--root)      options[root]=1     ;;
+      -s|--source)    options[source]=1   ;;
+      -b|--bin)       options[bin]=1      ;;
+      -l|--lib)       options[lib]=1      ;;
+      -i|--include)   options[include]=1  ;;
+      -S|--share)     options[share]=1    ;;
+      -e|--samples)   options[samples]=1  ;;
       -v|--version)
         shift
         options[version]="$1"
@@ -106,6 +108,8 @@ show_prefix_and_run() {
       cd share || abort "$error_message"
     elif [ ${options[root]} -eq 1 ]; then
       cd "$PGENV_ROOT" || abort "$error_message"
+    elif [ ${options[samples]} -eq 1 ]; then
+      cd "$PGENV_ROOT"/samples || abort "$error_message"
     fi
 
     if [ -s /dev/stdin ]; then

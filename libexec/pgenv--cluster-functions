@@ -206,6 +206,7 @@ working_directory="$OLDPWD"    # This is the directory where you were when creat
 # Replication graph
 # This information is extracted from pg_stat_replication view.
 # So to analyze current exact replication state, all instances need to be started.
+declare -A replication_tree=()
 EOF
 
   {
@@ -627,8 +628,12 @@ attach_node() {
   local new_node="$2"
   local status=0
 
+  local standby_num=$(( ${#synchronous_standby_servers[@]} + ${#asynchronous_standby_servers[@]} ))
+
   (
     cd "$PGENV_CLUSTER_ROOT"
+    local archive_dir="$(resolve_link archivedir_${new_node})"
+
     if [ -d "$new_node" ]; then
       error "error: directory already exists: $new_node"
       abort "hint: set other instance name"
@@ -641,10 +646,6 @@ attach_node() {
       (cd "$OLDPWD" && rm -rf "$new_node")
       exit 1
     fi
-    replace_string_in_file "replace" "$new_node/recovery.conf" \
-                           "passfile=''.*''" ""
-    replace_string_in_file "replace" "$new_node/recovery.conf" \
-                           "target_session_attrs=[^ ']*" ""
 
     local include_file="$(resolve_link ${new_node}.conf)"
     local port="$pg_start_port"
@@ -657,16 +658,26 @@ wal_keep_segments = 16
 hot_standby = on
 logging_collector = on
 log_filename = 'postgresql-%Y-%m-%d.log'
+#log_min_messages = warning
+max_wal_senders = $((10 + $standby_num))
+archive_command = 'test ! -f "$archive_dir/%f" && cp %p "$archive_dir/%f"'
 EOF
     # Set include file (to overwrite settings)
     replace_string_in_file "del" "$new_node/postgresql.conf" \
                            "include = " "include = '$include_file'"
 
-    cat <<EOF >> "$new_node/recovery.conf"
+    if version_later_than 12 &> /dev/null; then
+      cat <<EOF >> "$new_node.conf"
 recovery_target_timeline = 'latest'
 #restore_command = 'cp "$(resolve_link "archivedir")/%f" "%p"'
 EOF
-
+    else
+      cat <<EOF >> "$new_node/recovery.conf"
+recovery_target_timeline = 'latest'
+#restore_command = 'cp "$(resolve_link "archivedir")/%f" "%p"'
+EOF
+    fi
+    mkdir -p "$archive_dir"
   )
 
   add_standby_server "async" "$new_node" "$pg_start_port"
