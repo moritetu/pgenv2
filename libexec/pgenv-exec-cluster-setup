@@ -285,7 +285,9 @@ logging_collector = on
 log_filename = 'postgresql-%Y-%m-%d.log'
 #log_min_messages = warning
 max_wal_senders = $((10 + $standby_num))
-archive_command = 'test ! -f "$archive_dir/%f" && cp %p "$archive_dir/%f"'
+wal_level = logical
+archive_mode = always
+archive_command = 'cp %p "$archive_dir/%f"'
 EOF
       # Set include file (to overwrite settings)
       replace_string_in_file "del" "$standby_server/postgresql.conf" \
@@ -294,12 +296,12 @@ EOF
       if version_later_than 12 &> /dev/null; then
         cat <<EOF >> "${standby_server}.conf"
 recovery_target_timeline = 'latest'
-#restore_command = 'cp "$(resolve_link "archivedir")/%f" "%p"'
+#restore_command = 'cp "$(resolve_link "$archive_dir")/%f" "%p"'
 EOF
       else
         cat <<EOF >> "$standby_server/recovery.conf"
 recovery_target_timeline = 'latest'
-#restore_command = 'cp "$(resolve_link "archivedir")/%f" "%p"'
+#restore_command = 'cp "$(resolve_link "$archive_dir")/%f" "%p"'
 EOF
       fi
       mkdir -p "$archive_dir"
