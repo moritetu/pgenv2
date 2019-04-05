@@ -37,12 +37,13 @@ parse_options() {
         options[help]=1
         ;;
       *)
-        arguments[${#arguments[@]}]="$1"
+        break
         ;;
     esac
     shift
   done
 
+  arguments=( "$@" )
   if [ ${#arguments[@]} -eq 0 ]; then
     usage_and_abort
   fi
