@@ -497,6 +497,7 @@ start_instance_safely() {
   local instance="$(get_instance "$instance_name")"
   shift
   local start_options="$@"
+  local status=
 
   if [ -z "$instance" ]; then
     log_warn "$(self -v): invalid instance: $instance_name"
@@ -512,8 +513,22 @@ start_instance_safely() {
       (
         cd "$PGENV_CLUSTER_ROOT"
         eval "$(switch_context && pwd)/bin/pg_ctl" -D "$instance_name" start $start_options
-      )
-      start_instance_safely "$node" "$start_options"
+      ) || status=$?
+
+      if [ $status -eq 0 ]; then
+        # callback
+        if [ "$instance_name" = "$primary_server" ]; then
+          on_primary_started
+        else
+          on_standby_started "${instance_name}"
+        fi
+
+        # Enter next replication tree.
+        start_instance_safely "$node" "$start_options"
+      else
+        log_warn "failed to start instance: $standby_server"
+        break
+      fi
     fi
   done
 }
@@ -530,6 +545,9 @@ start_all_instances() {
     start_instance "$primary_server" || status=$?
     if [ $status -ne 0 ]; then
       log_warn "server may be already running: $primary_server"
+    else
+      # callback
+      on_primary_started
     fi
 
     local instance=
@@ -538,6 +556,9 @@ start_all_instances() {
       start_instance "$instance" || status=$?
       if [ $status -ne 0 ]; then
         log_warn "instance may be already running: $instance"
+      else
+        # callback
+        on_standby_started "${instance}"
       fi
     done
   }
@@ -632,7 +653,10 @@ attach_node() {
 
   (
     cd "$PGENV_CLUSTER_ROOT"
-    local archive_dir="$(resolve_link archivedir_${new_node})"
+    declare -r archive_dir="$(resolve_link archivedir_${new_node})"
+    declare -r include_file="$(resolve_link ${new_node}.conf)"
+    declare -r port="$pg_start_port"
+    declare -r pgdata="$PGENV_CLUSTER_ROOT/${new_node}"
 
     if [ -d "$new_node" ]; then
       error "error: directory already exists: $new_node"
@@ -647,38 +671,26 @@ attach_node() {
       exit 1
     fi
 
-    local include_file="$(resolve_link ${new_node}.conf)"
-    local port="$pg_start_port"
     # Create include file for standby
     log_info "create include file for standby: $include_file"
 
-    cat <<EOF > "$include_file"
-port = $port
-wal_keep_segments = 16
-hot_standby = on
-logging_collector = on
-log_filename = 'postgresql-%Y-%m-%d.log'
-#log_min_messages = warning
-max_wal_senders = $((10 + $standby_num))
-wal_level = logical
-archive_mode = always
-archive_command = 'cp %p "$archive_dir/%f"'
-EOF
+    # Call callback function
+    log_trace "call on_standby_setup"
+    on_standby_setup "${new_node}"
+
     # Set include file (to overwrite settings)
     replace_string_in_file "del" "$new_node/postgresql.conf" \
                            "include = " "include = '$include_file'"
 
+    local recovery_conf="${new_node}/recovery.conf"
     if version_later_than 12 &> /dev/null; then
-      cat <<EOF >> "$new_node.conf"
-recovery_target_timeline = 'latest'
-#restore_command = 'cp "$(resolve_link "$archive_dir")/%f" "%p"'
-EOF
-    else
-      cat <<EOF >> "$new_node/recovery.conf"
-recovery_target_timeline = 'latest'
-#restore_command = 'cp "$(resolve_link "$archive_dir")/%f" "%p"'
-EOF
+      recovery_conf="${new_node}.conf"
     fi
+
+    # Call callback function
+    log_trace "call on_standby_recovery_setup"
+    on_standby_recovery_setup "${new_node}"
+
     mkdir -p "$archive_dir"
   )
 
@@ -758,9 +770,15 @@ start_cluster() {
   log_info "==> start cluster: $PGENV_CLUSTER_ROOT"
   start_instance "$primary_server"
 
+  # callback
+  on_primary_started
+
   local instance=
   for instance in ${all_standby_servers[@]:-}; do
     start_instance "$instance"
+
+    log_trace "call on_standby_started"
+    on_standby_started "${instance}"
   done
 }
 

@@ -4,7 +4,8 @@ set -eu
 
 source "$PGENV_LIBEXEC"/pgenv--load
 source "$PGENV_LIBEXEC"/pgenv--cluster-functions
-
+load pgenv--cluster-callback
+load_if_exists "pgenv-cluster-callback.sh" ||:
 
 # Command line options
 declare -A options
@@ -110,6 +111,8 @@ if [ ${options[attach]} -eq 1 ]; then
   attach_node "${options[fork_off]}" "${arguments[0]}"
   if [ ${options[start]} -eq 1 ]; then
     start_instance "${arguments[0]}"
+    # callback
+    on_standby_started "${arguments[0]}"
   fi
   write_cluster_info
 elif [ ${options[detach]} -eq 1 ]; then

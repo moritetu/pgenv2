@@ -1,0 +1,98 @@
+#!/usr/bin/env bash
+#
+# This callback functions are called when cluster setup.
+# You can overwrite the functions defined in this file.
+#
+# The callback script is searched from PGENV_LOAD_PATH,
+# the file of which the name must be 'pgenv-cluster-callback.sh'.
+#
+#
+# Primary setup
+# -------------
+#   1. Do initdb
+#  *2. on_primary_setup
+#   3. Basic configuration
+#   4. Start primary node
+#  *5. on_primary_started
+#
+# Standby setup
+# -------------
+#   1. Do pg_basebackup
+#  *2. on_standby_setup <instance_name>
+#   3. Basic configuration
+#   4. Start primary node
+#  *5. on_standby_started <instance_name>
+#
+
+#: on_primary_setup
+#:   Called when primary node is set up.
+#:   stdout strings will be appended to postgresql.conf.
+#:
+on_primary_setup() {
+  log_trace "on_primary_setup"
+  cat <<EOF > "$include_file"
+port = $port
+max_wal_senders = $((10 + $standby_num))
+wal_keep_segments = 16
+wal_level = logical
+archive_mode = on
+archive_command = 'cp %p "$archive_dir/%f"'
+logging_collector = on
+#log_min_messages = warning
+log_filename = 'postgresql-%Y-%m-%d.log'
+#log_statement = 'none'			# none, ddl, mod, all
+log_checkpoints = on
+synchronous_standby_names = '$(join_strings "," "${synchronous_standby_servers[@]}")'
+hot_standby = on
+EOF
+}
+
+#: on_primary_started
+#:   Called when primary node has started.
+#:
+on_primary_started() {
+  log_trace "on_primary_started"
+  : Do something
+}
+
+
+#: on_standby_setup
+#:   Called when primary node is set up.
+#:   stdout strings will be appended to postgresql.conf.
+#:
+on_standby_setup() {
+  log_trace "on_standby_setup"
+  cat <<EOF > "$include_file"
+port = $port
+wal_keep_segments = 16
+hot_standby = on
+logging_collector = on
+log_filename = 'postgresql-%Y-%m-%d.log'
+#log_min_messages = warning
+max_wal_senders = $((10 + $standby_num))
+wal_level = logical
+archive_mode = always
+archive_command = 'cp %p "$archive_dir/%f"'
+EOF
+}
+
+#: on_standby_recovery_setup
+#:   Called when standby node is set up.
+#:   stdout strings will be appended to recovery.conf or postgresql.conf(later 12)
+#:
+on_standby_recovery_setup() {
+  log_trace "on_standby_recovery_setup"
+  # If postgresql is greater than V12, $recovery_conf is 'postgresql.conf'.
+  cat <<EOF >> "$recovery_conf"
+recovery_target_timeline = 'latest'
+#restore_command = 'cp "$(resolve_link "$archive_dir")/%f" "%p"'
+EOF
+}
+
+#: on_standby_started
+#:   Called when standby node has started.
+#:
+on_standby_started() {
+  log_trace "on_standby_started"
+  : Do something
+}
