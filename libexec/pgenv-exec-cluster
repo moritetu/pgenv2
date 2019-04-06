@@ -95,6 +95,9 @@ fi
 
 case ${arguments[0]:-""} in
   setup)
+    if [ ! -e "$PGENV_CLUSTER_ROOT" ]; then
+      mkdir -p "$PGENV_CLUSTER_ROOT"
+    fi
     if (( $(ls -A "$PGENV_CLUSTER_ROOT/" | wc -l) > 0 )); then
       error "error: '$PGENV_CLUSTER_ROOT' already exists."
       abort "hint: pass other directory or remove it before setup."

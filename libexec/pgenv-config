@@ -21,7 +21,7 @@
 
 #:@PGENV_LOAD_PATH
 #: The paths in which import command searches libraries.
-PGENV_LOAD_PATH=( "${PGENV_LIBEXEC:-}" "$PWD/libexec"  "." )
+PGENV_LOAD_PATH=( "${PGENV_LIBEXEC:-}" "$PWD/libexec" "$PWD" "." )
 
 
 #:@PGENV_TMPDIR
