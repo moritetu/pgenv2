@@ -154,7 +154,7 @@ load_if_exists() {
         libpath="$(resolve_link "$loadpath/$lib")"
         break
       fi
-    done < <(array_reverse "${PGEN_LOAD_PATH[@]}")
+    done < <(array_reverse "${PGENV_LOAD_PATH[@]}")
     if [ -z "$libpath" ]; then
       return 1
     fi
