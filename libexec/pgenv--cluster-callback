@@ -20,7 +20,7 @@
 #   1. Do pg_basebackup
 #  *2. on_standby_setup <instance_name>
 #   3. Basic configuration
-#   4. Start primary node
+#   4. Start standby node
 #  *5. on_standby_started <instance_name>
 #
 
