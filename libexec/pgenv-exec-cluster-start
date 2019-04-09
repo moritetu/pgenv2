@@ -4,6 +4,8 @@ set -eu
 
 source "$PGENV_LIBEXEC"/pgenv--load
 source "$PGENV_LIBEXEC"/pgenv--cluster-functions
+load pgenv--cluster-callback
+load_if_exists "pgenv-cluster-callback.sh" ||:
 
 
 # Command line options
