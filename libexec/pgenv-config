@@ -64,11 +64,6 @@ declare -r PGENV_TMPDIR=${PGENV_TMPDIR:-"${TMPDIR:-/tmp}"}
 : ${PGENV_DEFAULT_LINK:="default"}
 
 
-#:@PGENV_CONFIGURE_OPTIOINS_DIR
-#: The file configure options are stored. When pgenv builds source, refers to them.
-: ${PGENV_CONFIGURE_OPTIOINS_DIR:=configure_options}
-
-
 #:@PGENV_CURL
 #: curl command.
 : ${PGENV_CURL:="curl"}
