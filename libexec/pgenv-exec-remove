@@ -95,7 +95,7 @@ remove_pg() {
   fi
 
   local version_name="$pg_remove_version"
-  local install_dir="$(cd -P -- "$version_dir" && pwd -P) 2> /dev/null"
+  local install_dir="$(cd -P "$version_dir" && pwd -P 2> /dev/null)"
   local source_dir="$PGENV_SOURCE_DIR"/"$pg_remove_version"
   local archive_file="$PGENV_ARCHIVE_DIR"/"postgresql-${pg_remove_version}.tar.gz"
 
