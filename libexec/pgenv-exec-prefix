@@ -156,25 +156,28 @@ exit $?
 #   pgenv prefix --share ls -l postgresql/extension
 #
 # OPTIONS
-#   --bin
+#   -b, --bin
 #     Show path to the current version bin directory.
 #
-#   --lib
+#   -l, --lib
 #     Show path to the current version lib directory.
 #
-#   --include
+#   -i, --include
 #     Show path to the current version include directory.
 #
-#   --share
+#   -S, --share
 #     Show path to the current version share directory.
 #
-#   --source
+#   -s, --source
 #     Show path to the current version source directory.
+#
+#   -e, --samples
+#     Show path to the samples directory.
 #
 #   -v, --version <version>
 #     Switch prefix context to the context of <version> temporarily.
 #
-#   --root
+#   -r, --root
 #     Show pgenv root.
 #
 #
