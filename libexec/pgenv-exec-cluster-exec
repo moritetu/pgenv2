@@ -64,7 +64,7 @@ exec_commands_on_target_node() {
   export PGDATABASE=postgres
 
   (
-    cd "$pgdata"
+    cd "$PGDATA"
 
     # Execute commands
     if [ -s /dev/stdin ] || [ -p /dev/stdin ]; then

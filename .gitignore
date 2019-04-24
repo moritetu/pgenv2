@@ -4,6 +4,7 @@
 /logs/*
 !.gitkeep
 /default
+/test/out
 
 available_versions
 configure_options-*
