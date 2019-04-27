@@ -109,13 +109,15 @@ edit_configure_options() {
 #:   Show configure options.
 #:
 show_configure_options() {
+  local version_configure=
+
   if [ ${options[local]} -eq 1 ]; then
     if [ -f "$local_configure_options_file" ]; then
       echo "#$local_configure_options_file"
       cat "$local_configure_options_file"
     fi
   elif [ ${options[global]} -eq 1 ]; then
-    local version_configure="$PGENV_ROOT/configure_options-${pg_configure_version}"
+    version_configure="$PGENV_ROOT/configure_options-${pg_configure_version}"
     if [ -f "$version_configure" ]; then
       echo "#$version_configure"
       cat "$version_configure"
@@ -130,7 +132,7 @@ show_configure_options() {
       echo "#$local_configure_options_file"
       cat "$local_configure_options_file"
     elif [ -f "$version_configure" ]; then
-      local version_configure="$PGENV_ROOT/configure_options-${pg_configure_version}"
+      version_configure="$PGENV_ROOT/configure_options-${pg_configure_version}"
       echo "#$version_configure"
       cat "$version_configure"
     elif [ -f "$default_configure_options_file" ]; then

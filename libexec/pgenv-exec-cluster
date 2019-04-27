@@ -8,7 +8,6 @@ source "$PGENV_LIBEXEC"/pgenv--load
 declare -A options
 options=(
   [D]=""
-  [help]=0
 )
 
 # Cluster root directory
@@ -32,9 +31,6 @@ parse_options() {
       -D)
         shift
         options[D]="$1"
-        ;;
-      -h|--help)
-        options[help]=1
         ;;
       *)
         break
@@ -76,12 +72,6 @@ parse_options "$@"
 # Cluster command
 pg_cluster_command="pgenv-exec-cluster-${arguments[0]}"
 
-# If help option, show usage end exit.
-if [ ${options[help]} -eq 1 ]; then
-  get_comment_block "$(pgenv_exec_command "$pg_cluster_command")" "HELP"
-  exit
-fi
-
 # Pass env PGENV_CLUSTER_ROOT to the sub command.
 if [ -n "${options[D]}" ]; then
   export PGENV_CLUSTER_ROOT="$(resolve_link "${options[D]}")"
@@ -92,6 +82,15 @@ if [ -z "$PGENV_CLUSTER_ROOT" ]; then
   error "error: cluster directory is not set."
   abort "hint: -D <dir> or PGENV_CLUSTER_ROOT=<dir>"
 fi
+
+
+for help_opt in ${arguments[@]}; do
+  if [ $help_opt = "-h" ] || [ $help_opt = "--help" ]; then
+    get_comment_block "$(pgenv_exec_command "$pg_cluster_command")" "HELP"
+    exit
+  fi
+done
+
 
 case ${arguments[0]:-""} in
   setup)
@@ -115,7 +114,6 @@ case ${arguments[0]:-""} in
     usage_and_abort
     ;;
 esac
-
 
 # Remove sub command name.
 unset -v arguments[0]

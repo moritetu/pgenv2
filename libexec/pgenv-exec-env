@@ -10,7 +10,7 @@ options=(
   [version]=
   [write]=0
   [edit]=0
-  [sys]=
+  [sys]=0
 )
 
 # Arguments array
@@ -36,7 +36,10 @@ parse_options() {
     case "$1" in
       -v|--version)
         shift
-        options[version]="$1"
+        options[version]="${1:-}"
+        if [ -z ${options[version]} ]; then
+          abort "error: version is required: -v <version>"
+        fi
         ;;
       -w|--write)
         options[write]=1
