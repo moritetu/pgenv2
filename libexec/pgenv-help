@@ -46,6 +46,8 @@ EXAMPLE
   4. Execute command.
     $ initdb pgdata
 
+For more details, see: https://github.com/moritetu/pgenv2#readme
+
 DETAIL
 }
 
