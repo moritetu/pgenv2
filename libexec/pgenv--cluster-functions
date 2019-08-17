@@ -68,7 +68,7 @@ switch_context() {
 current_pg_version() {
   local pgverinfo=( $(psql -V) )
   local pgver=${pgverinfo[2]}
-  pgver=${pgver//[a-zA-Z]/}
+  pgver=${pgver//[a-zA-Z]*/}
   echo "$pgver"
 }
 
