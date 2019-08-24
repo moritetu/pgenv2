@@ -271,7 +271,7 @@ standby:24313       pg_ctl: server is running (PID: 1217)
 # Asynchronous standby servers
 
 [Replication Graph]
-primary -> standby 
+primary -> standby
   standby ->
 ```
 
@@ -320,9 +320,9 @@ standby:24313       pg_ctl: server is running (PID: 1537)
 standby2:24314      pg_ctl: server is running (PID: 1713)
 
 [Replication Graph]
-standby2 -> 
-primary -> standby standby2 
-  standby -> 
+standby2 ->
+primary -> standby standby2
+  standby ->
 ```
 
 **Detaching nodes:**
@@ -348,9 +348,9 @@ standby:24313       pg_ctl: server is running (PID: 1537)
 standby2:24314      pg_ctl: no server running
 
 [Replication Graph]
-standby2 -> 
-primary -> standby 
-  standby -> 
+standby2 ->
+primary -> standby
+  standby ->
 ```
 
 ### Tailing logs
@@ -468,7 +468,7 @@ You can build your extension for all installed version.
 
 ```bash
 $ cd myext
-$ pgenv extension install -v @all 
+$ pgenv extension install -v @all
 ```
 
 ### Testing your extension
@@ -483,7 +483,7 @@ $ pgenv extension run -v @all 'rm -rf ${ver}data $ver.log'
 ```
 
 
- 
+
 FAQ
 ----
 
@@ -505,3 +505,7 @@ License
 -------
 
 Distributed under [The MIT License]; see [`LICENSE.md`] for terms.
+
+[GitHub issues]: https://github.com/moritetu/pgenv/issues
+[The MIT License]: https://opensource.org/licenses/MIT
+[`LICENSE.md`]: https://github.com/moritetu/pgenv2/blob/master/LICENSE.md
