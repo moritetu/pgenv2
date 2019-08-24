@@ -1,0 +1,113 @@
+#!/usr/bin/env bash
+
+set -eu
+
+source "$PGENV_LIBEXEC"/pgenv--load
+
+# Command line options
+declare -A options
+options=(
+  [outdir]="$(pwd)"
+  [version]=
+)
+
+# Arguments array
+arguments=()
+
+
+#: parse_options [arg ...]
+#:   Parse command line options.
+#:
+parse_options() {
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      -o|--output-dir)
+        shift
+        if [ ! -e "$1" ]; then
+          abort "error: directory not found: $1"
+        fi
+        options[outdir]="$(resolve_link "$1")"
+        ;;
+      -v|--version)
+        shift
+        ( pgenv prefix -v "$1" &> /dev/null ) || abort "error: invalid version: $1"
+        options[version]="$1"
+        ;;
+      -*)
+        abort "error: $(self): invalid option: $1"
+        ;;
+      *)
+        arguments[${#arguments[@]}]="$1"
+        ;;
+    esac
+    shift
+  done
+}
+
+
+#: export_postgres
+#:   Export PostgreSQL
+#:
+export_postgres() {
+  local export_target=
+  local export_version=
+  local export_file=
+  local status=
+
+  # If version is not specified, use current version.
+  export_target="$(pgenv prefix ${options[version]:+-v ${options[version]} })"
+  export_version="$(basename "$export_target")"
+  export_file="${options[outdir]}/${arguments[0]:-${export_version}}"
+
+  # Normalize
+  export_file="${export_file%.tar.gz}"
+  export_file="${export_file%.tgz}"
+  export_file+=.tar.gz
+
+  cd "$(dirname "$export_target")"
+
+  log_trace "make a tarball => tar czf $export_file $export_version"
+
+  if tar czf "$export_file" "$export_version" ; then
+    echo "$export_file"
+  else
+    abort "error: failed to archive: $export_file"
+  fi
+}
+
+
+# Parse command line options.
+parse_options "$@"
+
+export_postgres
+
+exit $?
+
+
+#=begin COMMAND
+#
+# export      Export PostgreSQL with tarball archive.
+#
+#=end COMMAND
+
+#=begin HELP
+#
+# Usage: pgenv export [-v|--version <version>] [-o|--output-dir <dir>] [<file>]
+#
+# Export PostgreSQL with tarball archive.
+#
+#
+# SYNOPSIS
+#   pgenv export
+#   pgenv export my.tar.gz
+#   pgenv export --version 10.5 -o /tmp
+#
+# OPTIONS
+#   -o, --output-dir <dir>
+#     Output directory. Default is current directory.
+#
+#   -v, --version <version>
+#     Export version. Default is current version.
+#
+#
+#=end HELP

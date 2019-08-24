@@ -39,6 +39,9 @@ pgenv remove 10.4
 # Show available versions
 pgenv versions
 
+# Export PostgreSQL with tarball archive
+pgenv export
+
 # Edit configure options
 pgenv configure -e --default
 
