@@ -59,6 +59,11 @@ declare -r PGENV_TMPDIR=${PGENV_TMPDIR:-"${TMPDIR:-/tmp}"}
 : ${PGENV_LOGS_DIR:=logs}
 
 
+#:@PGENV_PLUGINS_DIR
+#: curl command.
+: ${PGENV_PLUGINS_DIR:=plugins}
+
+
 #:@PGENV_DEFAULT_LINK
 #: The linkfile where current context is pointed.
 : ${PGENV_DEFAULT_LINK:="default"}

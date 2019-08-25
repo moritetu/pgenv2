@@ -65,12 +65,26 @@ pgenv_usage() {
 collect_command_description() {
   local format="${1:-  %b\n}"
   local line=
+  local command_path bindir
+
   shopt -s nullglob
+
+  # Search original commands
   for command_path in "$PGENV_LIBEXEC"/pgenv-exec-*; do
     while IFS= read -r line; do
       printf "$format" "$line"
     done < <(get_comment_block "$command_path" "COMMAND")
   done
+
+  # Search plugin commands
+  for bindir in "$PGENV_ROOT"/"$PGENV_PLUGINS_DIR"/*/bin; do
+    for command_path in "$bindir"/pgenv-exec-*; do
+      while IFS= read -r line; do
+        printf "$format" "$line"
+      done < <(get_comment_block "$command_path" "COMMAND")
+    done
+  done
+
   shopt -u nullglob
 }
 

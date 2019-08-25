@@ -5,7 +5,7 @@ HERE="$(cd -P -- $(dirname -- "${BASH_SOURCE:-$0}") && pwd -P)"
 
 export PGENV_ROOT="${PGENV_ROOT:-$(dirname "$HERE")}"
 export PGENV_LIBEXEC="$PGENV_ROOT/libexec"
-export PATH="$PGENV_LIBEXEC":"$PGENV_ROOT/bin":"$PATH"
+
 source "$PGENV_LIBEXEC/pgenv--load"
 
 export PGENV_LOG_LEVEL="${PGENV_LOG_LEVEL:-2}"
@@ -18,6 +18,13 @@ pgenv_exec_command() {
   [ -z "$exec_command" ] && abort "error: invalid command: $command_name"
   echo $exec_command
 }
+
+# Enable plugins
+for bindir in "$PGENV_ROOT"/"$PGENV_PLUGINS_DIR"/*/bin; do
+  PATH="${bindir}:$PATH"
+done
+export PATH="$PGENV_LIBEXEC":"$PGENV_ROOT/bin":"$PATH"
+
 
 while [ $# -gt 0 ]; do
   COMMAND="$1"

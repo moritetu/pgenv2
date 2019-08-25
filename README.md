@@ -485,6 +485,53 @@ $ pgenv extension run -v @all 'pg_ctl stop -D ${ver}data'
 $ pgenv extension run -v @all 'rm -rf ${ver}data $ver.log'
 ```
 
+Plugin
+------
+
+You can add your own features into pgenv2. A plugin can be installed under `$PGENV_ROOT/plugins`. 
+
+```
+$PGENV_ROOT/plugins/my-plugin
+  |- bin
+    |- pgenv-exec-<command name>
+```
+
+The description of your plugin can be shown with `pgenv help` command by writing `COMMAND` and `HELP` comment block into executable scripts.
+
+```
+#!/usr/bin/env bash
+
+echo "Hello my plugin"
+
+#=begin COMMAND
+#
+# my          This is my plugin.
+#
+#=end COMMAND
+
+#=begin HELP
+#
+# Usage: pgenv my [-v|--version]
+#
+# OPTIONS
+#   -v, --version
+#     Show version.
+#
+#
+#=end HELP
+```
+
+You will see the usage of the plugin with the following:
+
+```
+$ pgenv my -h
+Usage: pgenv my [-v]
+
+OPTIONS
+  -v, --version
+    Show version.
+    
+```
 
 
 FAQ
