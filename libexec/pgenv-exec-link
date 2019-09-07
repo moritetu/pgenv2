@@ -49,7 +49,7 @@ parse_options() {
     pg_link_path="$PWD/$pg_link_path"
     if [ -d "$pg_link_path" ] || [ -L "$pg_link_path" ]; then
       local status=0
-      (cd -P -- "$pg_link_path" && pwd -P) &> /dev/null || status=$?
+      (cd -P "$pg_link_path" && pwd -P) &> /dev/null || status=$?
       if [ $status -ne 0 ]; then
         abort "error: invalid path: $pg_link_path"
       fi

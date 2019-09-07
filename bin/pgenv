@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -eu
 
-HERE="$(cd -P -- $(dirname -- "${BASH_SOURCE:-$0}") && pwd -P)"
+HERE="$(cd -P $(dirname "${BASH_SOURCE:-$0}") && pwd -P)"
 
 export PGENV_ROOT="${PGENV_ROOT:-$(dirname "$HERE")}"
 export PGENV_LIBEXEC="$PGENV_ROOT/libexec"
@@ -20,9 +20,11 @@ pgenv_exec_command() {
 }
 
 # Enable plugins
+shopt -s nullglob
 for bindir in "$PGENV_ROOT"/"$PGENV_PLUGINS_DIR"/*/bin; do
   PATH="${bindir}:$PATH"
 done
+shopt -u nullglob
 export PATH="$PGENV_LIBEXEC":"$PGENV_ROOT/bin":"$PATH"
 
 
@@ -35,7 +37,7 @@ while [ $# -gt 0 ]; do
       export PGENV_NOCOLOR=1
       ;;
     --debug)
-      export PGENV_LOG_FORMAT='$(printf "(%s)" "$(basename -- "${BASH_SOURCE[1]}"):${BASH_LINENO[0]}") - $@'
+      export PGENV_LOG_FORMAT='$(printf "(%s)" "$(basename "${BASH_SOURCE[1]}"):${BASH_LINENO[0]}") - $@'
       ;;
     --d[0-4])
       export PGENV_LOG_LEVEL="${1:3:1}"
@@ -67,9 +69,54 @@ while [ $# -gt 0 ]; do
           exit
           ;;
         *)
+          # Enable hooks
+          function pgenv-hook() {
+            local should_print=0
+            local hook hookdir
+            if [ "${1:-}" = "--print" ]; then
+              should_print=1
+              shift
+            fi
+
+            if [ "${pgenv_last_invoked_hookname:-}" != "${1}" ]; then
+              pgenv_last_invoked_hookname="$1"
+              pgenv_last_invoked_hooks=()
+              shopt -s nullglob
+              for hookdir in "$PGENV_ROOT"/hooks "$PGENV_ROOT"/"$PGENV_PLUGINS_DIR"/*/hooks ~/.pgenv/hooks; do
+                for hook in "$hookdir"/"$pgenv_last_invoked_hookname"/*.bash; do
+                  if [ "$BASH_SOURCE" != "$hook" ]; then
+                    pgenv_last_invoked_hooks[${#pgenv_last_invoked_hooks[@]}]="$hook"
+                  fi
+                done
+              done
+              shopt -u nullglob
+            fi
+
+            if (( should_print == 1 )); then
+              echo "${pgenv_last_invoked_hooks[@]}"
+            else
+              if [ "${pgenv_hook_running:-}" = "1" ]; then
+                echo "error: hook cannot be executed while other hook is running" >&2
+                exit 1
+              fi
+              pgenv_hook_running=1
+              shift
+              for hook in ${pgenv_last_invoked_hooks[@]}; do
+                source "$hook" "$@"
+              done
+              pgenv_hook_running=0
+            fi
+          }
+          export -f pgenv-hook
+
           # Execute a command.
           export PGENV_EXEC_COMMAND="$COMMAND"
-          exec "$exec_command" "$@"
+          if [ -x "$exec_command" ]; then
+            exec "$exec_command" "$@"
+          else
+            exec bash "$exec_command" "$@"
+          fi
+          ;;
       esac
   esac
   shift

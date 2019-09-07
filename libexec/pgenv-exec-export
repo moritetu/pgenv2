@@ -73,6 +73,8 @@ export_postgres() {
   else
     abort "error: failed to archive: $export_file"
   fi
+
+  pgenv-hook export finish "$export_file"
 }
 
 

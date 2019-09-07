@@ -237,6 +237,8 @@ setup_cluster() {
 
     log_trace "create archive directory: $archive_dir"
     mkdir -p "$archive_dir"
+
+    pgenv-hook cluster-setup setup_primary "$primary_server" "$pgdata" "$port" "$include_file" "$archive_dir"
   )
 
   log_info "start primary instance"
@@ -290,6 +292,8 @@ setup_cluster() {
       on_standby_recovery_setup "${standby_server}"
 
       mkdir -p "$archive_dir"
+
+      pgenv-hook cluster-setup setup_standby "$standby_server" "$pgdata" "$port" "$include_file" "$archive_dir"
     )
 
     log_info "start standby instance"

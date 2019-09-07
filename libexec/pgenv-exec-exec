@@ -138,6 +138,8 @@ execute_commands() {
     eval "$exec_command"
   fi
 
+  pgenv-hook exec finish
+
   # Execute script
   if [ -n "$exec_scriptfile" ]; then
     log_trace "==> execute script file"

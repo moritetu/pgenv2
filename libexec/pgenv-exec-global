@@ -52,11 +52,11 @@ set_global_link() {
   # Get available versions.
   log_trace "==> find '$PGENV_VERSIONS_DIR'"
   for version_directory in $(find "$PGENV_VERSIONS_DIR" -maxdepth 1 -mindepth 1 -type d); do
-    available_versions[${#available_versions[@]}]="$(basename -- "$version_directory")"
+    available_versions[${#available_versions[@]}]="$(basename "$version_directory")"
   done
 
   for version_directory in $(find "$PGENV_VERSIONS_DIR" -maxdepth 1 -mindepth 1 -type l); do
-    available_versions[${#available_versions[@]}]="$(basename -- "$version_directory")"
+    available_versions[${#available_versions[@]}]="$(basename "$version_directory")"
   done
 
   log_trace "==> ${available_versions[@]}"
@@ -83,10 +83,14 @@ set_global_link() {
   fi
   ln -snf "$PGENV_VERSIONS_DIR/$pg_setglobal_version" "$PGENV_DEFAULT_LINK"
 
+  pgenv-hook global finish \
+	     "$PGENV_VERSIONS_DIR/$pg_setglobal_version" \
+	     "$PGENV_DEFAULT_LINK"
+
   # If profile does not exist, make it.
   if [ ! -s "$pg_profile" ]; then
   cat <<'EOF' > "$pg_profile"
-HERE="$(cd -P -- "$(dirname -- "${BASH_SOURCE:-$0}")" && pwd -P)"
+HERE="$(cd -P "$(dirname "${BASH_SOURCE:-$0}")" && pwd -P)"
 export PATH="$HERE/default/bin":"$HERE/bin":"$PATH"
 export POSTGRES_HOME="$HERE/default"
 export PGLIB="$POSTGRES_HOME/lib"

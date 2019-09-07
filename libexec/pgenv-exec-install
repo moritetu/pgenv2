@@ -111,7 +111,7 @@ parse_options() {
 
   source_url="$(printf "$PGENV_POSTGRESQL_SOURCE_FORMAT" "$pg_install_version" "$pg_install_version")"
 
-  pg_archive_file="$(basename -- "$source_url")"
+  pg_archive_file="$(basename "$source_url")"
 
   pg_expanded_dir="${pg_archive_file%.tar.gz}"
 }
@@ -245,6 +245,8 @@ install_pg() {
     configure_options="$configure_options --enable-debug --enable-cassert"
   fi
 
+  pgenv-hook install before_configure "$configure_options"
+
   log_info "$configure_options"
 
   # Build!
@@ -302,6 +304,8 @@ install_pg() {
     make_command=install
   fi
 
+  pgenv-hook install before_make "$make_command"
+
   log_info "==> make $make_command"
   if [ ${options[verbose]} -eq 1 ]; then
     (
@@ -341,6 +345,8 @@ install_pg() {
       ln -snf "${options[install_dir]}" "$PGENV_VERSIONS_DIR/$install_dirname"
     fi
   fi
+
+  pgenv-hook install finish "${options[install_dir]}" "$PGENV_VERSIONS_DIR/$install_dirname"
 }
 
 # Parse command line options.

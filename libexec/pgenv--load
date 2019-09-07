@@ -265,7 +265,7 @@ resolve_link() {
 #:   Return the absolute path of the specified path.
 #:
 abs_dirname() {
-  echo "$(cd -P -- "$(dirname -- "$1")" && pwd -P)"
+  echo "$(cd -P "$(dirname "$1")" && pwd -P)"
 }
 
 #: push_load_path <path> [<path> ...]

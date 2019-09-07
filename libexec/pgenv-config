@@ -60,7 +60,7 @@ declare -r PGENV_TMPDIR=${PGENV_TMPDIR:-"${TMPDIR:-/tmp}"}
 
 
 #:@PGENV_PLUGINS_DIR
-#: curl command.
+#: The directory into which plugins are installed.
 : ${PGENV_PLUGINS_DIR:=plugins}
 
 

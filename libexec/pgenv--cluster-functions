@@ -141,18 +141,18 @@ do_basebackup() {
       log_trace "==> pg_basebackup (later than 11): connect to localhost:$port"
       eval "$(switch_context && pwd)/bin/pg_basebackup" -R -w \
            -D "$instance_dir" --wal-method=stream -P -v -p $port -h localhost \
-           --dbname="application_name=$(basename -- "$instance_dir")"
+           --dbname="application_name=$(basename "$instance_dir")"
     # version 10
     elif [ "${pgver%%.*}" -ge "10" ]; then
       log_trace "==> pg_basebackup (later than 10): connect to localhost:$port"
       eval "$(switch_context && pwd)/bin/pg_basebackup" -R -w \
            -D "$instance_dir" --wal-method=stream -P -v -p $port -h localhost \
-           --dbname="application_name=$(basename -- "$instance_dir")"
+           --dbname="application_name=$(basename "$instance_dir")"
     else
       log_trace "==> pg_basebackup (earlier than 10): connect to localhost:$port"
       eval "$(switch_context && pwd)/bin/pg_basebackup" -R -w \
            -D "$instance_dir" --xlog -P -v -p $port -h localhost \
-           --dbname="application_name=$(basename -- "$instance_dir")"
+           --dbname="application_name=$(basename "$instance_dir")"
     fi
   )
 }
@@ -879,7 +879,7 @@ replace_string_in_file() {
   local org_file="$2"
   local source="$3"
   local newstring="$4"
-  local tmpfile="$PGENV_TMPDIR"/"$(basename -- "$org_file").pgenvtmp"
+  local tmpfile="$PGENV_TMPDIR"/"$(basename "$org_file").pgenvtmp"
   if [ "$mode" = "del" ]; then
     log_trace "$(self -vv): sed -e '/$source/d' $org_file"
     sed -e "/$source/d" "$org_file" > "$tmpfile" || status=$?
@@ -891,7 +891,7 @@ replace_string_in_file() {
 
   if [ $status -ne 0 ]; then
     error "error: failed to write $tmpfile"
-    abort "hint: $(dirname -- "$tmpfile") must be writable"
+    abort "hint: $(dirname "$tmpfile") must be writable"
   fi
 
   log_trace "$(self): mv $tmpfile $org_file"

@@ -18,9 +18,9 @@ status=0
 
 # Current version
 pg_current_version=""
-cd -P -- "$PGENV_ROOT/$PGENV_DEFAULT_LINK" &> /dev/null || status=$?
+cd -P "$PGENV_ROOT/$PGENV_DEFAULT_LINK" &> /dev/null || status=$?
 if [ $status -eq 0 ]; then
-  pg_current_version="$(basename -- "$(readlink "$PGENV_ROOT/$PGENV_DEFAULT_LINK")")"
+  pg_current_version="$(basename "$(readlink "$PGENV_ROOT/$PGENV_DEFAULT_LINK")")"
 fi
 
 
@@ -59,12 +59,12 @@ show_installed_versions() {
   log_trace "==> find '$PGENV_VERSIONS_DIR'"
   for version_directory in $(find "$PGENV_VERSIONS_DIR" -maxdepth 1 -mindepth 1 -type d)
   do
-    available_versions[${#available_versions[@]}]="$(basename -- "$version_directory")"
+    available_versions[${#available_versions[@]}]="$(basename "$version_directory")"
   done
 
   for version_directory in $(find "$PGENV_VERSIONS_DIR" -maxdepth 1 -mindepth 1 -type l)
   do
-    available_versions[${#available_versions[@]}]="$(basename -- "$version_directory")"
+    available_versions[${#available_versions[@]}]="$(basename "$version_directory")"
   done
 
   log_trace "==> ${available_versions[@]}"
@@ -81,7 +81,7 @@ show_installed_versions() {
     local pathinfo=""
     for version_directory in "${available_versions[@]}"; do
       if [ ${options[verbose]} -eq 1 ]; then
-        pathinfo=" -> $(cd -P -- "$PGENV_VERSIONS_DIR/$version_directory" && pwd -P)"
+        pathinfo=" -> $(cd -P "$PGENV_VERSIONS_DIR/$version_directory" && pwd -P)"
       fi
       if [ "$pg_current_version" = "$version_directory" ]; then
         println "$(text_color_success "* $(printf "%-10s %s" "${version_directory}" "${pathinfo}")")"

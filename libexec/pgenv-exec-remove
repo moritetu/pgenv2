@@ -135,6 +135,8 @@ remove_pg() {
     fi
   fi
 
+  pgenv-hook remove finish "$install_dir" "$version_dir" "$source_dir" "$archive_file"
+
   :
 }
 

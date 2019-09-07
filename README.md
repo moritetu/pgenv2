@@ -533,6 +533,19 @@ OPTIONS
     
 ```
 
+Hooks
+-----
+pgenv2 invokes hook scripts in running command optionally. The hook scripts can be installed into the followings.
+
+```
+$PGENV_ROOT/hooks/<hook_name>/yourhook.bash
+$PGENV_ROOT/plugins/<plugin_name>/hooks/<hook_name>/yourhook.bash
+~/.pgenv/hooks/<hook_name>/yourhook.bash
+```
+
+The name of hook sciprt file must end with `.bash`.
+
+See more detail: [pgenv2 plugin sample]
 
 FAQ
 ----
@@ -556,6 +569,7 @@ License
 
 Distributed under [The MIT License]; see [`LICENSE.md`] for terms.
 
-[GitHub issues]: https://github.com/moritetu/pgenv/issues
+[pgenv2 plugin sample]: https://github.com/moritetu/pgenv-plugin-sample
+[GitHub issues]: https://github.com/moritetu/pgenv2/issues
 [The MIT License]: https://opensource.org/licenses/MIT
 [`LICENSE.md`]: https://github.com/moritetu/pgenv2/blob/master/LICENSE.md

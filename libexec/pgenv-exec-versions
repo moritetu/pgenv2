@@ -71,6 +71,8 @@ fi
 # Cache version list.
 printf "%s" "$curlout"| grep -e 'v[[:digit:]][^"/<>]*' -o | sort | uniq > "$pg_directories_file"
 
+pgenv-hook versions refresh "$pg_directories_file"
+
 # Show versions.
 show_available_version
 

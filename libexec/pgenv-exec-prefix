@@ -63,7 +63,7 @@ show_prefix_and_run() {
   if [ -z "${options[version]}" ]; then
     # Nothing to do.
     if [ -h "$PGENV_DEFAULT_LINK" ]; then
-      version_name="$(basename -- "$(readlink "$PGENV_DEFAULT_LINK")")"
+      version_name="$(basename "$(readlink "$PGENV_DEFAULT_LINK")")"
     fi
   else
     version_name="${options[version]}"
@@ -87,7 +87,7 @@ show_prefix_and_run() {
   fi
 
   (
-    cd -P -- "$PGENV_VERSIONS_DIR/$version_name" 2> /dev/null \
+    cd -P "$PGENV_VERSIONS_DIR/$version_name" 2> /dev/null \
       || abort "error: $version_name is invalid.\nhint: check 'pgenv list'"
 
     local error_message="error: refer invalid version or version link is broken.\n"
