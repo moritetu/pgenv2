@@ -38,6 +38,8 @@ pgenv remove 10.4
 
 # Show available versions
 pgenv versions
+pgenv versions -p  # pretty print
+pgenv versions 9.6 # print only specified versions
 
 # Export PostgreSQL with tarball archive
 pgenv export
@@ -93,6 +95,16 @@ $ pgenv versions
 ```
 
 pgenv2 gets available versions from the public PostgreSQL website, so please confirm whether the version you are going to install exists in the list.
+
+And also, you can print only specified versions with the pretty format.
+
+```bash
+$ pgenv versions -p 10
+PostgreSQL Available Versions 10
+=======================================================================
+10.0         10.1         10.2         10.3         10.4         10.5         
+10.6         10.7         10.8         10.9         10.10        
+```
 
 Next, you can build a PostgreSQL with `install` command.
 

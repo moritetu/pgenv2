@@ -8,6 +8,8 @@ source "$PGENV_LIBEXEC"/pgenv--load
 declare -A options
 options=(
   [refresh]=0
+  [pretty]=0
+  [cols]=
 )
 
 # Arguments array
@@ -15,6 +17,10 @@ arguments=()
 
 # The file cache versions.
 pg_directories_file="$PGENV_ROOT/available_versions"
+
+# Pretty print format
+declare -r line_width=13
+declare -r def_colnum=6
 
 
 #: parse_options [arg ...]
@@ -26,6 +32,13 @@ parse_options() {
       -r|--refresh)
         options[refresh]=1
         ;;
+      -p|--pretty)
+        options[pretty]=1
+        ;;
+      -c|--cols)
+        shift
+        options[cols]="${1:-}"
+        ;;
       -*)
         abort "error: $(self): invalid option: $1"
         ;;
@@ -35,14 +48,102 @@ parse_options() {
     esac
     shift
   done
+
+  if [ ${options[pretty]} -ne 1 ] && [ -n "${options[cols]}" ]; then
+    abort "error: -c option must be used -p options."
+  fi
 }
 
 #: show_available_version
 #:   Show available versions.
 #:
 show_available_version() {
-  cat "$pg_directories_file" | sed -e 's/^v//' | sort -n
+  local optver="${arguments[0]:-}"
+
+  # Pretty print ?
+  if [ ${options[pretty]} -eq 1 ]; then
+    if [ -n "$optver" ]; then
+      pretty_print_with_version "$optver"
+    else
+      pretty_print_all
+    fi
+  else
+    if [ -n "$optver" ]; then
+      local ver=
+      while read ver; do
+        if [[ "$ver" =~ ^${optver}\. ]]; then
+	  echo $ver
+        fi
+      done < "$pg_directories_file"
+
+    else
+      cat "$pg_directories_file"
+    fi
+  fi
 }
+
+
+#: pretty_print_all
+#:  Print all versions with pretty format.
+#:
+pretty_print_all() {
+  local colnum="${options[cols]:-$def_colnum}"
+
+  printf "%s\n" "PostgreSQL Available Versions"
+  printf "%s\n" "======================================================================="
+
+  local ver= i=0 current_ver= prev_ver=
+  while read ver; do
+    current_ver="${ver%%.*}"
+    if [ "$prev_ver" != "$current_ver" ]; then
+      if (( i % colnum != 0 )); then
+        printf "\n\n"
+      else
+        echo
+      fi
+      printf "%s\n" "v$current_ver"
+      printf "%s\n" "-------------------------"
+      prev_ver="$current_ver"
+      i=0
+    fi
+    printf "%-${line_width}s" "$ver"
+    ((i+=1))
+    (( i % colnum == 0 )) && echo
+  done < "$pg_directories_file"
+
+  if (( i % colnum != 0 )); then
+    printf "\n\n"
+  else
+    echo
+  fi
+}
+
+#: pretty_print_with_version
+#:  Print specfied versions with pretty format.
+#:
+pretty_print_with_version() {
+  local colnum="${options[cols]:-$def_colnum}"
+  local ver= i=0
+  local target_version="$1"
+
+  printf "%s\n" "PostgreSQL Available Versions $optver"
+  printf "%s\n" "======================================================================="
+
+  while read ver; do
+    if [[ "$ver" =~ ^${target_version}\. ]]; then
+      printf "%-${line_width}s" "$ver"
+      ((i+=1))
+      (( i % colnum == 0 )) && echo
+    fi
+  done < "$pg_directories_file"
+
+  if (( i % colnum != 0 )); then
+    printf "\n\n"
+  else
+    echo
+  fi
+}
+
 
 # Parse command line options.
 parse_options "$@"
@@ -69,7 +170,10 @@ if [ $ret -ne 0 ]; then
 fi
 
 # Cache version list.
-printf "%s" "$curlout"| grep -e 'v[[:digit:]][^"/<>]*' -o | sort | uniq > "$pg_directories_file"
+printf "%s" "$curlout"| grep -e 'v[[:digit:]][^"/<>]*' -o | \
+  sed -e 's/^v//' | \
+  sort -t '.' -k 1n,1 -k 2n,2 -k 3n,3 | \
+  uniq > "$pg_directories_file"
 
 pgenv-hook versions refresh "$pg_directories_file"
 
@@ -87,17 +191,29 @@ exit $?
 
 #=begin HELP
 #
-# Usage: pgenv versions [-r|--refresh]
+# Usage: pgenv versions [-r|--refresh] [-p|--pretty] [-c|--cols <cols>]
+#                       [<version>]
 #
 # Get available postgresql versions and show them.
 #
 #
 # SYNOPSIS
 #   pgenv versions --refresh
+#   pgenv versions -p
+#   pgenv versions 10
+#   pgenv versions -p -c 6 10
 #
 # OPTIONS
+#   -c, --cols
+#     Column number printed in a row with pretty print.
+#     This option is used with '-p' option.
+#
+#   -p, --pretty
+#     Pretty print.
+#
 #   -r, --refresh
 #     Clear cached and get versions newly.
+#
 #
 # SHELL VARIABLES
 #
