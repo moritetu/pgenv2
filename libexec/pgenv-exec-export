@@ -68,6 +68,14 @@ export_postgres() {
 
   log_trace "make a tarball => tar czf $export_file $export_version"
 
+  # Enable cancel
+  function cancel_export() {
+    /bin/rm "$export_file"
+  }
+
+  add_trap_callback SIGINT cancel_export
+  register_trap_callback
+
   if tar czf "$export_file" "$export_version" ; then
     echo "$export_file"
   else
