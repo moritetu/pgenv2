@@ -274,7 +274,7 @@ install_pg() {
       # configure
       cd "$source_dir"
       chmod +x configure
-      eval "./configure ${configure_options} CFLAGS='$cflags'"
+      eval "./configure ${configure_options} CFLAGS='$cflags' CXXFLAGS='$cflags'"
     ) |& tee -a "$install_log" || status=$?
   else
     (
@@ -285,7 +285,7 @@ install_pg() {
       # configure
       cd "$source_dir"
       chmod +x configure
-      eval "./configure ${configure_options} CFLAGS='$cflags'"
+      eval "./configure ${configure_options} CFLAGS='$cflags' CXXFLAGS='$cflags'"
     ) >> "$install_log" 2>&1 || status=$?
 
   fi
