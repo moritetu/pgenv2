@@ -93,7 +93,7 @@ while [ $# -gt 0 ]; do
             fi
 
             if (( should_print == 1 )); then
-              echo "${pgenv_last_invoked_hooks[@]}"
+              echo "${pgenv_last_invoked_hooks[@]:-}"
             else
               if [ "${pgenv_hook_running:-}" = "1" ]; then
                 echo "error: hook cannot be executed while other hook is running" >&2
@@ -101,7 +101,7 @@ while [ $# -gt 0 ]; do
               fi
               pgenv_hook_running=1
               shift
-              for hook in ${pgenv_last_invoked_hooks[@]}; do
+              for hook in ${pgenv_last_invoked_hooks[@]:-}; do
                 source "$hook" "$@"
               done
               pgenv_hook_running=0

@@ -68,7 +68,7 @@ export_postgres() {
 
   log_trace "make a tarball => tar czf $export_file $export_version"
 
-  # Enable cancel
+  # Enable canceling
   function cancel_export() {
     /bin/rm "$export_file"
   }
