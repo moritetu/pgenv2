@@ -70,7 +70,7 @@ while [ $# -gt 0 ]; do
           ;;
         *)
           # Enable hooks
-          function pgenv-hook() {
+          function pgenv_hook() {
             local should_print=0
             local hook hookdir
             if [ "${1:-}" = "--print" ]; then
@@ -107,7 +107,7 @@ while [ $# -gt 0 ]; do
               pgenv_hook_running=0
             fi
           }
-          export -f pgenv-hook
+          export -f pgenv_hook
 
           # Execute a command.
           export PGENV_EXEC_COMMAND="$COMMAND"

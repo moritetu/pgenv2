@@ -175,7 +175,7 @@ printf "%s" "$curlout"| grep -e 'v[[:digit:]][^"/<>]*' -o | \
   sort -t '.' -k 1n,1 -k 2n,2 -k 3n,3 | \
   uniq > "$pg_directories_file"
 
-pgenv-hook versions refresh "$pg_directories_file"
+pgenv_hook versions refresh "$pg_directories_file"
 
 # Show versions.
 show_available_version

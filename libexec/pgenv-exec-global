@@ -83,7 +83,7 @@ set_global_link() {
   fi
   ln -snf "$PGENV_VERSIONS_DIR/$pg_setglobal_version" "$PGENV_DEFAULT_LINK"
 
-  pgenv-hook global finish \
+  pgenv_hook global finish \
 	     "$PGENV_VERSIONS_DIR/$pg_setglobal_version" \
 	     "$PGENV_DEFAULT_LINK"
 

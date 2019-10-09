@@ -138,7 +138,7 @@ execute_commands() {
     eval "$exec_command"
   fi
 
-  pgenv-hook exec finish
+  pgenv_hook exec finish
 
   # Execute script
   if [ -n "$exec_scriptfile" ]; then
