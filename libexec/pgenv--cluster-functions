@@ -68,7 +68,7 @@ switch_context() {
 current_pg_version() {
   local pgverinfo=( $(psql -V) )
   local pgver=${pgverinfo[2]}
-  pgver=${pgver//[a-zA-Z]*/}
+  pgver=${pgver//[.a-zA-Z]*/}
   echo "$pgver"
 }
 
@@ -90,6 +90,17 @@ check_pg_version() {
 #:   $(version_later_than 10) )) && echo "version is later than 10"
 #:
 version_later_than() {
+  local ver="$1"
+  (( $(current_pg_version) >= $ver ))
+}
+
+#: version_sooner_than <version>
+#:   Check whether the specified version is sooner than pg_setup_version.
+#:
+#: ex:
+#:   $(version_sooner_than 10) )) && echo "version is sooner than 10"
+#:
+version_sooner_than() {
   local ver="$1"
   (( $(current_pg_version) <= $ver ))
 }
