@@ -26,6 +26,10 @@ EOS
     return 1
   fi
   source "$BASH_PROFILE"
+
+  if [ ! -e ~/.pgenv ]; then
+    mkdir -p ~/.pgenv/{hooks,plugins}
+  fi
 }
 
 __install_pgenv || echo "error: failed to install" >&2
