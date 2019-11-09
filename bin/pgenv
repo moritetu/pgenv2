@@ -82,7 +82,8 @@ while [ $# -gt 0 ]; do
               pgenv_last_invoked_hookname="$1"
               pgenv_last_invoked_hooks=()
               shopt -s nullglob
-              for hookdir in "$PGENV_ROOT"/hooks "$PGENV_ROOT"/"$PGENV_PLUGINS_DIR"/*/hooks ~/.pgenv/hooks; do
+              for hookdir in "$PGENV_ROOT"/hooks "$PGENV_ROOT"/"$PGENV_PLUGINS_DIR"/*/hooks \
+					  ~/.pgenv/"$PGENV_PLUGINS_DIR"/*/hooks ~/.pgenv/hooks ; do
                 for hook in "$hookdir"/"$pgenv_last_invoked_hookname"/*.bash; do
                   if [ "${BASH_SOURCE:-$0}" != "$hook" ]; then
                     pgenv_last_invoked_hooks[${#pgenv_last_invoked_hooks[@]}]="$hook"
