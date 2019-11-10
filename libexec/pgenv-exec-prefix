@@ -76,7 +76,9 @@ show_prefix_and_run() {
     else
       (
         cd "$PGENV_SOURCE_DIR"/"$version_name"
-        if [ ${#arguments[@]} -gt 0 ]; then
+        if [ -s /dev/stdin ]; then
+          eval "$(cat -)"
+        elif [ ${#arguments[@]} -gt 0 ]; then
           eval "${arguments[@]}"
         else
           pwd -P

@@ -102,8 +102,8 @@ And also, you can print only specified versions with the pretty format.
 $ pgenv versions -p 10
 PostgreSQL Available Versions 10
 =======================================================================
-10.0         10.1         10.2         10.3         10.4         10.5         
-10.6         10.7         10.8         10.9         10.10        
+10.0         10.1         10.2         10.3         10.4         10.5
+10.6         10.7         10.8         10.9         10.10
 ```
 
 Next, you can build a PostgreSQL with `install` command.
@@ -218,7 +218,9 @@ $ pgenv prefix --source
 In addition to it, you can pass arbitrary commands as arguments.
 
 ```bash
-$ pgenv prefix --bin initdb pgdata
+$ pgenv prefix --bin <<COM
+initdb pgdata
+COM
 $ pgenv prefix --source 'find src/backend -type f -name "*.c" | xargs grep "too many clients"'
 src/backend/postmaster/postmaster.c:					 errmsg("sorry, too many clients already")));
 src/backend/storage/ipc/procarray.c:				 errmsg("sorry, too many clients already")));
@@ -500,7 +502,7 @@ $ pgenv extension run -v @all 'rm -rf ${ver}data $ver.log'
 Plugin
 ------
 
-You can add your own features into pgenv2. A plugin can be installed under `$PGENV_ROOT/plugins`. 
+You can add your own features into pgenv2. A plugin can be installed under `$PGENV_ROOT/plugins`.
 
 ```
 $PGENV_ROOT/plugins/my-plugin
@@ -542,7 +544,7 @@ Usage: pgenv my [-v]
 OPTIONS
   -v, --version
     Show version.
-    
+
 ```
 
 Hooks
