@@ -217,12 +217,11 @@ working_directory="$OLDPWD"    # This is the directory where you were when creat
 # Replication graph
 # This information is extracted from pg_stat_replication view.
 # So to analyze current exact replication state, all instances need to be started.
-declare -A replication_tree=()
+if declare -p replication_tree &> /dev/null; then
+  declare -A -g replication_tree=()
+$(inspect_replication_tree)
+fi
 EOF
-
-  {
-    inspect_replication_tree
-  } >> "$cluster_config"
 }
 
 #: analyze_replication_tree
@@ -604,6 +603,7 @@ stop_instance_safely() {
   local instance="$(get_instance "$instance_name")"
   shift
   local stop_options="$@"
+  local status=0
 
   if [ -z "$instance" ]; then
     log_warn "$(self -v): invalid instance: $instance_name"
@@ -614,7 +614,8 @@ stop_instance_safely() {
   local i=
   for instance in $(array_reverse "${servers[@]:-}"); do
     if [ -n "$instance" ]; then
-      stop_instance_safely "$instance" "$stop_options"
+      stop_instance_safely "$instance" "$stop_options" || status=$?
+      test $status -ne 0 && log_warn "failed to stop instance: $instance"
     fi
   done
 
@@ -624,7 +625,8 @@ stop_instance_safely() {
   (
     cd "$PGENV_CLUSTER_ROOT"
     # Stop instance.
-    eval "$(switch_context && pwd)/bin/pg_ctl" -D "$instance_name" stop $stop_options
+    eval "$(switch_context && pwd)/bin/pg_ctl" -D "$instance_name" stop $stop_options || status=$?
+    exit $status
   )
 
 }
@@ -649,6 +651,7 @@ stop_all_instances() {
   status=0
   stop_instance "$primary_server" || status=$?
   test $status -ne 0 && log_warn "failed to stop instance: $primary_server"
+  return $status
 }
 
 
@@ -799,7 +802,7 @@ start_cluster() {
 #:
 stop_cluster() {
   log_info "==> stop cluster: $PGENV_CLUSTER_ROOT"
-  stop_instance_safely "$primary_server"
+  stop_instance_safely "$primary_server" "$@"
 }
 
 

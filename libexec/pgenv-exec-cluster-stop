@@ -56,8 +56,11 @@ parse_options() {
       abort "hint: please set <instance> or set -a option"
     fi
   fi
-}
 
+  if [ ${options[force]} -eq 1 ]; then
+    options[opts]+=" -m i"
+  fi
+}
 
 load_cluster_setting
 
@@ -67,12 +70,12 @@ parse_options "$@"
 # Stop my cluster.
 if [ ${options[all]} -eq 1 ]; then
   if [ ${options[force]} -eq 1 ]; then
-    stop_cluster
+    stop_cluster "${options[opts]}"
   else
-    stop_all_instances
+    stop_all_instances "${options[opts]}"
   fi
 else
-  instance="" status=
+  instance="" status=0
   for instance in ${arguments[@]}; do
     if [ ${options[force]} -eq 1 ]; then
       stop_instance "$instance" "${options[opts]}" || status=$?
