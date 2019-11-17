@@ -23,7 +23,6 @@
 #: The paths in which import command searches libraries.
 PGENV_LOAD_PATH=( "${PGENV_LIBEXEC:-}" "$PWD/libexec" "$PWD" "." )
 
-
 #:@PGENV_TMPDIR
 #: The temporary directory pgenv uses.
 declare -r PGENV_TMPDIR=${PGENV_TMPDIR:-"${TMPDIR:-/tmp}"}
@@ -74,6 +73,20 @@ declare -r PGENV_TMPDIR=${PGENV_TMPDIR:-"${TMPDIR:-/tmp}"}
 : ${PGENV_CURL:="curl"}
 
 
+#:@PGENV_PLUGIN_PATH
+#: The paths where plugins is placed.
+PGENV_PLUGIN_PATH=("$PGENV_ROOT/$PGENV_PLUGINS_DIR"/*/bin
+                   ~/.pgenv/"$PGENV_PLUGINS_DIR"/*/bin )
+
+#:@PGENV_HOOK_PATH
+#: The paths where hook scripts are placed.
+PGENV_HOOK_PATH=("$PGENV_ROOT/hooks"
+                 "$PGENV_ROOT/$PGENV_PLUGINS_DIR"/*/hooks
+                 ~/.pgenv/hooks
+                 ~/.pgenv/"$PGENV_PLUGINS_DIR"/*/hooks)
+
+
+
 # show_config
 #   Print pgenv configurations.
 #
@@ -112,6 +125,7 @@ show_config() {
   fi
 }
 
+pgenv_hook config
 
 # Print comment lines in this file.
 #

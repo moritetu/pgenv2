@@ -6,10 +6,6 @@ HERE="$(cd -P $(dirname "${BASH_SOURCE:-$0}") && pwd -P)"
 export PGENV_ROOT="${PGENV_ROOT:-$(dirname "$HERE")}"
 export PGENV_LIBEXEC="$PGENV_ROOT/libexec"
 
-source "$PGENV_LIBEXEC/pgenv--load"
-
-export PGENV_LOG_LEVEL="${PGENV_LOG_LEVEL:-2}"
-
 # Check whether the specified command is valid.
 pgenv_exec_command() {
   local command_name="$1"
@@ -19,9 +15,56 @@ pgenv_exec_command() {
   echo $exec_command
 }
 
+# Enable hooks
+pgenv_hook() {
+  local should_print=0
+  local hook hookdir
+  if [ "${1:-}" = "--print" ]; then
+    should_print=1
+    shift
+  fi
+
+  if [ "${pgenv_last_invoked_hookname:-}" != "${1}" ]; then
+    pgenv_last_invoked_hookname="$1"
+    pgenv_last_invoked_hooks=()
+    shopt -s nullglob
+    for hookdir in ${PGENV_HOOK_PATH[@]:-}; do
+      for hook in "$hookdir"/"$pgenv_last_invoked_hookname"/*.bash; do
+        if [ "${BASH_SOURCE:-$0}" != "$hook" ]; then
+          pgenv_last_invoked_hooks[${#pgenv_last_invoked_hooks[@]}]="$hook"
+        fi
+      done
+    done
+    shopt -u nullglob
+  fi
+
+  if [ "${pgenv_env_running_hook:-}" = "$pgenv_last_invoked_hookname" ]; then
+    echo "hook $pgenv_last_invoked_hookname is already running" >&2
+    exit 1
+  fi
+
+  if (( should_print == 1 )); then
+    echo "${pgenv_last_invoked_hooks[@]:-}"
+  else
+    shift
+    export pgenv_env_running_hook="$pgenv_last_invoked_hookname"
+    for hook in ${pgenv_last_invoked_hooks[@]:-}; do
+      source "$hook" "$@"
+    done
+    unset pgenv_env_running_hook
+  fi
+}
+export -f pgenv_hook
+
+
+source "$PGENV_LIBEXEC/pgenv--load"
+
+export PGENV_LOG_LEVEL="${PGENV_LOG_LEVEL:-2}"
+
+
 # Enable plugins
 shopt -s nullglob
-for bindir in "$PGENV_ROOT"/"$PGENV_PLUGINS_DIR"/*/bin; do
+for bindir in ${PGENV_PLUGIN_PATH[@]:-}; do
   PATH="${bindir}:$PATH"
 done
 shopt -u nullglob
@@ -69,47 +112,6 @@ while [ $# -gt 0 ]; do
           exit
           ;;
         *)
-          # Enable hooks
-          function pgenv_hook() {
-            local should_print=0
-            local hook hookdir
-            if [ "${1:-}" = "--print" ]; then
-              should_print=1
-              shift
-            fi
-
-            if [ "${pgenv_last_invoked_hookname:-}" != "${1}" ]; then
-              pgenv_last_invoked_hookname="$1"
-              pgenv_last_invoked_hooks=()
-              shopt -s nullglob
-              for hookdir in "$PGENV_ROOT"/hooks "$PGENV_ROOT"/"$PGENV_PLUGINS_DIR"/*/hooks \
-					  ~/.pgenv/"$PGENV_PLUGINS_DIR"/*/hooks ~/.pgenv/hooks ; do
-                for hook in "$hookdir"/"$pgenv_last_invoked_hookname"/*.bash; do
-                  if [ "${BASH_SOURCE:-$0}" != "$hook" ]; then
-                    pgenv_last_invoked_hooks[${#pgenv_last_invoked_hooks[@]}]="$hook"
-                  fi
-                done
-              done
-              shopt -u nullglob
-            fi
-
-            if (( should_print == 1 )); then
-              echo "${pgenv_last_invoked_hooks[@]:-}"
-            else
-              if [ "${pgenv_hook_running:-}" = "1" ]; then
-                echo "error: hook cannot be executed while other hook is running" >&2
-                exit 1
-              fi
-              pgenv_hook_running=1
-              shift
-              for hook in ${pgenv_last_invoked_hooks[@]:-}; do
-                source "$hook" "$@"
-              done
-              pgenv_hook_running=0
-            fi
-          }
-          export -f pgenv_hook
-
           # Execute a command.
           export PGENV_EXEC_COMMAND="$COMMAND"
           if [ -x "$exec_command" ]; then

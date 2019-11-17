@@ -76,13 +76,7 @@ show_prefix_and_run() {
     else
       (
         cd "$PGENV_SOURCE_DIR"/"$version_name"
-        if [ -s /dev/stdin ]; then
-          eval "$(cat -)"
-        elif [ ${#arguments[@]} -gt 0 ]; then
-          eval "${arguments[@]}"
-        else
-          pwd -P
-        fi
+        exec_command
       )
     fi
     exit 0
@@ -114,16 +108,24 @@ show_prefix_and_run() {
       cd "$PGENV_ROOT"/samples || abort "$error_message"
     fi
 
-    if [ -s /dev/stdin ]; then
-      eval "$(cat -)"
-    elif [ ${#arguments[@]} -gt 0 ]; then
-      log_trace "==> eval ${arguments[@]}"
-      eval "${arguments[@]}"
-    else
-      pwd -P
-    fi
+    exec_command
   )
 }
+
+#: exec_command
+#:   Execute user command or show path.
+#:
+exec_command() {
+  if [ -s /dev/stdin ]; then
+    eval "$(cat -)"
+  elif [ ${#arguments[@]} -gt 0 ]; then
+    log_trace "==> eval ${arguments[@]}"
+    eval "${arguments[@]}"
+  else
+    pwd -P
+  fi
+}
+
 
 # Parse command line options.
 parse_options "$@"
