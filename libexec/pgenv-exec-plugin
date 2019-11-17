@@ -1,0 +1,164 @@
+#!/usr/bin/env bash
+
+set -eu
+
+source "$PGENV_LIBEXEC"/pgenv--load
+
+# Command line options
+declare -A options
+options=(
+  [hook]=0
+  [plugin]=0
+)
+
+# Arguments array
+arguments=()
+
+declare -A available_hooks
+
+#: parse_options [arg ...]
+#:   Parse command line options.
+#:
+parse_options() {
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      -f|--hook)    options[hook]=1         ;;
+      -p|--plugin)  options[plugin]=1       ;;
+      -*)
+        abort "error: $(self): invalid option: $1"
+        ;;
+      *)
+        arguments[${#arguments[@]}]="$1"
+        ;;
+    esac
+    shift
+  done
+
+  if [ ${options[plugin]} -eq 0 ] && [ ${options[hook]} -eq 0 ]; then
+    options[plugin]=1
+  fi
+}
+
+#: read_available_hooks
+#:   Read available hooks in pgenv.
+#:
+read_available_hooks() {
+  local h=
+  shopt -s nullglob
+  for h in $(ls "${PGENV_LIBEXEC}"/pgenv-exec-*); do
+    local hook="$(basename "$h")"
+    local key="${hook#pgenv-exec-*}"
+    available_hooks["$key"]="$h"
+  done
+  shopt -u nullglob
+}
+
+#: strrep
+#:   Repeat printing the specified string.
+#:
+strrep() {
+  local c="$1"
+  local str="$2"
+  local s=
+  local buffer=
+  for s in $(seq 1 "$c"); do
+    buffer+="$str"
+  done
+  printf "%b" "${buffer}"
+}
+
+
+#: show_plugins
+#:   Show plugins.
+#:
+show_plugins() {
+  local plugin_name=
+  local plugin_path=
+  local line=
+
+  shopt -s nullglob
+  printf "%-25s    %s\n" "plugin_name" "path"
+  strrep 50 "-"
+  echo
+
+  for bindir in ${PGENV_PLUGIN_PATH[@]:-}; do
+    plugin_path="$(dirname "$bindir")"
+    plugin_name="$(basename "$plugin_path")"
+    printf "%-20s    %s\n" "$plugin_name" "$plugin_path"
+  done
+  shopt -u nullglob
+  echo
+}
+
+#: show_hooks
+#:   Show hooks.
+#:
+show_hooks() {
+  local hook_name=
+  local hook_script=
+
+  # Enable plugins
+  shopt -s nullglob
+
+  printf "%s\n" "hook name / hook"
+  strrep 50 "-"
+  echo
+
+  for hook_name in ${!available_hooks[@]}; do
+    echo "@${hook_name}:"
+    local hook_basedir=
+    for hook_basedir in ${PGENV_HOOK_PATH[@]:-}; do
+      local hook_dir="$hook_basedir/$hook_name"
+      [ ! -e "$hook_dir" ] && continue
+      for hook_script in "$hook_dir"/*.bash; do
+        echo "  $hook_script"
+      done
+    done
+  done
+  shopt -u nullglob
+}
+
+
+# Parse command line options.
+parse_options "$@"
+
+read_available_hooks
+
+if [ ${options[plugin]} -eq 1 ]; then
+  show_plugins
+fi
+
+if [ ${options[hook]} -eq 1 ]; then
+  show_hooks
+fi
+
+exit $?
+
+
+#=begin COMMAND
+#
+# plugin      Show plugins or hooks.
+#
+#=end COMMAND
+
+#=begin HELP
+#
+# Usage: pgenv plugin [-p|--plugin] [-f|--hook]
+#
+# Show plugins or hooks.
+#
+#
+# SYNOPSIS
+#   pgenv plugin -p
+#   pgenv plugin -f
+#   pgenv plugin -p -f
+#
+# OPTIONS
+#   -p, --plugin
+#     Show plugins.
+#
+#   -f, --hook
+#     Show hooks.
+#
+#
+#=end HELP
