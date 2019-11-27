@@ -150,18 +150,18 @@ do_basebackup() {
     # version 11
     if [ "${pgver%%.*}" -ge "11" ]; then
       log_trace "==> pg_basebackup (later than 11): connect to localhost:$port"
-      eval "$(switch_context && pwd)/bin/pg_basebackup" -R -w \
+      eval "$(switch_context && pwd)/bin/pg_basebackup" -R -w -c fast \
            -D "$instance_dir" --wal-method=stream -P -v -p $port -h localhost \
            --dbname="application_name=$(basename "$instance_dir")"
     # version 10
     elif [ "${pgver%%.*}" -ge "10" ]; then
       log_trace "==> pg_basebackup (later than 10): connect to localhost:$port"
-      eval "$(switch_context && pwd)/bin/pg_basebackup" -R -w \
+      eval "$(switch_context && pwd)/bin/pg_basebackup" -R -w -c fast \
            -D "$instance_dir" --wal-method=stream -P -v -p $port -h localhost \
            --dbname="application_name=$(basename "$instance_dir")"
     else
       log_trace "==> pg_basebackup (earlier than 10): connect to localhost:$port"
-      eval "$(switch_context && pwd)/bin/pg_basebackup" -R -w \
+      eval "$(switch_context && pwd)/bin/pg_basebackup" -R -w -c fast \
            -D "$instance_dir" --xlog -P -v -p $port -h localhost \
            --dbname="application_name=$(basename "$instance_dir")"
     fi
