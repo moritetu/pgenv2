@@ -23,10 +23,6 @@ arguments=()
 )
 
 
-# Remove version
-pg_remove_version=
-
-
 #: parse_options [arg ...]
 #:   Parse command line options.
 #:
@@ -54,8 +50,6 @@ parse_options() {
     abort "<version> is empty"
   fi
 
-  # Basic settings.
-  pg_remove_version="${arguments[0]}"
 }
 
 #: yes_or_no
@@ -79,40 +73,38 @@ yes_or_no() {
 }
 
 
-#: remove_pg
+#: remove_pg <remover_version>
 #:   Remove postgresql.
 #:
 remove_pg() {
   local status=0
+  local pg_remove_version="$1"
 
   # Switch working directory.
   cd "$PGENV_ROOT"
 
   local version_dir="$PGENV_VERSIONS_DIR"/"$pg_remove_version"
-  if [ ! -h "$version_dir" ] && [ ! -d "$version_dir" ]; then
-    error "error: version may not be installed: $pg_remove_version"
-    abort "hint: execute 'pgenv list'"
-  fi
-
   local version_name="$pg_remove_version"
-  local install_dir="$(cd -P "$version_dir" && pwd -P 2> /dev/null)"
   local source_dir="$PGENV_SOURCE_DIR"/"$pg_remove_version"
   local archive_file="$PGENV_ARCHIVE_DIR"/"postgresql-${pg_remove_version}.tar.gz"
+  local install_dir="$version_dir"
 
   # Remove binary
-  if [ -d "$install_dir" ]; then
+  if [ -e "$version_dir" ]; then
+    install_dir="$(cd -P "$version_dir" && pwd -P 2> /dev/null)"
+
     status=0
     log_info "==> remove install binary: $version_dir"
     yes_or_no "Do you remove '$version_dir' ?" || status=$?
     if [ $status -eq 0 ]; then
       rm -rf "$install_dir"
     fi
-  fi
 
-  # If version_dir remains, remote it too.
-  if [ -h "$version_dir" ]; then
-    log_info "==> remove version link: $version_dir"
-    rm -rf "$version_dir"
+    # If version_dir remains, remote it too.
+    if [ -h "$version_dir" ]; then
+      log_info "==> remove version link: $version_dir"
+      rm -rf "$version_dir"
+    fi
   fi
 
   # Remove source
@@ -144,7 +136,9 @@ remove_pg() {
 parse_options "$@"
 
 # Remove post gresq;
-remove_pg
+for remove_version in ${arguments[@]}; do
+  remove_pg "$remove_version"
+done
 
 exit $?
 
