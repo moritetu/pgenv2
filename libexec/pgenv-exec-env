@@ -7,10 +7,10 @@ source "$PGENV_LIBEXEC"/pgenv--load
 # Command line options
 declare -A options
 options=(
-  [version]=
-  [write]=0
   [edit]=0
   [sys]=0
+  [version]=
+  [write]=0
 )
 
 # Arguments array
@@ -125,13 +125,13 @@ EOF
 parse_options "$@"
 
 if [ ${options[edit]} -eq 1 ]; then
-  if [ ! -f "$pgenv_instance_env_file" ]; then
+  if [ ! -e "$pgenv_instance_env_file" ]; then
     write_env > "$pgenv_instance_env_file"
     pgenv_hook env write "$pgenv_instance_env_file"
   fi
   $EDITOR "$pgenv_instance_env_file"
 elif [ ${options[write]} -eq 1 ]; then
-  if [ -f "$pgenv_instance_env_file" ]; then
+  if [ -e "$pgenv_instance_env_file" ]; then
     abort "error: file already exists: $pgenv_instance_env_file"
   fi
   write_env > "$pgenv_instance_env_file"

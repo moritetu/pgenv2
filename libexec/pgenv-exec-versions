@@ -7,9 +7,9 @@ source "$PGENV_LIBEXEC"/pgenv--load
 # Command line options
 declare -A options
 options=(
-  [refresh]=0
-  [pretty]=0
   [cols]=
+  [pretty]=0
+  [refresh]=0
 )
 
 # Arguments array
@@ -29,15 +29,15 @@ declare -r def_colnum=6
 parse_options() {
   while [ $# -gt 0 ]; do
     case "$1" in
-      -r|--refresh)
-        options[refresh]=1
+      -c|--cols)
+        shift
+        options[cols]="${1:-}"
         ;;
       -p|--pretty)
         options[pretty]=1
         ;;
-      -c|--cols)
-        shift
-        options[cols]="${1:-}"
+      -r|--refresh)
+        options[refresh]=1
         ;;
       -*)
         abort "error: $(self): invalid option: $1"

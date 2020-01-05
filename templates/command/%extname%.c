@@ -44,12 +44,12 @@ main(int argc, char **argv)
 		if (strcmp(argv[1], "--help") == 0 || strcmp(argv[1], "-?") == 0)
 		{
 			help(progname);
-			exit(0);
+			exit(EXIT_SUCCESS);
 		}
 		if (strcmp(argv[1], "--version") == 0 || strcmp(argv[1], "-V") == 0)
 		{
 			puts("%extname% (PostgreSQL) " PG_VERSION);
-			exit(0);
+			exit(EXIT_SUCCESS);
 		}
 	}
 
@@ -60,12 +60,12 @@ main(int argc, char **argv)
 		{
 			case 'h':
 				help(progname);
-				exit(0);
+				exit(EXIT_SUCCESS);
 				break;
 
 			default:
 				fprintf(stderr, _("Try \"%s --help\" for more information.\n"), progname);
-				exit(1);
+				exit(EXIT_FAILURE);
 		}
 	}
 

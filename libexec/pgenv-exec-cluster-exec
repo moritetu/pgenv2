@@ -112,5 +112,5 @@ exit $?
 #   select * from pg_stat_replication
 #   SQL
 #
-
+#
 #=end HELP

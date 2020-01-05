@@ -499,7 +499,7 @@ endpoint_is_terminal() {
 get_comment_block() {
   local filepath="$1"
   local ident="$2"
-  if [ -f "$filepath" ]; then
+  if [ -e "$filepath" ]; then
     sed -n "
       /^#=begin ${ident}$/,/^#=end ${ident}$/ {
         /^#=begin .*$/d
@@ -533,7 +533,7 @@ self_comment_block() {
 #:
 get_comment_line() {
   local filepath="$1"
-  if [ -f "$filepath" ]; then
+  if [ -e "$filepath" ]; then
     sed -n "
       /^ *#:/ {
         s/^ *#: \{0,1\}//

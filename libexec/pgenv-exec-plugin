@@ -154,11 +154,11 @@ exit $?
 #   pgenv plugin -p -f
 #
 # OPTIONS
-#   -p, --plugin
-#     Show plugins.
-#
 #   -f, --hook
 #     Show hooks.
+#
+#   -p, --plugin
+#     Show plugins.
 #
 #
 #=end HELP

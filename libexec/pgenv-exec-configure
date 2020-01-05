@@ -7,11 +7,11 @@ source "$PGENV_LIBEXEC"/pgenv--load
 # Command line options
 declare -A options
 options=(
+  [default]=0
   [edit]=0
+  [global]=0
   [list]=0
   [local]=0
-  [global]=0
-  [default]=0
 )
 
 # Arguments array
@@ -38,9 +38,9 @@ parse_options() {
     case "$1" in
       -e|--edit)    options[edit]=1       ;;
       -l|--list)    options[list]=1       ;;
+      --default)    options[default]=1    ;;
       --local)      options[local]=1      ;;
       --global)     options[global]=1     ;;
-      --default)    options[default]=1    ;;
       -*)
         abort "error: $(self): invalid option: $1"
         ;;
@@ -82,7 +82,7 @@ edit_configure_options() {
     elif [ ${options[global]} -eq 1 ]; then
       $EDITOR "$PGENV_ROOT/configure_options-${pg_configure_version}"
     elif [ ${options[default]} -eq 1 ]; then
-      if [ -f "$default_configure_options_file" ]; then
+      if [ -e "$default_configure_options_file" ]; then
         $EDITOR "$default_configure_options_file"
       fi
     else
@@ -94,7 +94,7 @@ edit_configure_options() {
     elif [ ${options[global]} -eq 1 ]; then
       printf "%b\n" "$text" > "$PGENV_ROOT/configure_options-${pg_configure_version}"
     elif [ ${options[default]} -eq 1 ]; then
-      if [ -f "$default_configure_options_file" ]; then
+      if [ -e "$default_configure_options_file" ]; then
         printf "%b\n" "$text" > "$default_configure_options_file"
       fi
     else
@@ -112,30 +112,30 @@ show_configure_options() {
   local version_configure=
 
   if [ ${options[local]} -eq 1 ]; then
-    if [ -f "$local_configure_options_file" ]; then
+    if [ -e "$local_configure_options_file" ]; then
       echo "#$local_configure_options_file"
       cat "$local_configure_options_file"
     fi
   elif [ ${options[global]} -eq 1 ]; then
     version_configure="$PGENV_ROOT/configure_options-${pg_configure_version}"
-    if [ -f "$version_configure" ]; then
+    if [ -e "$version_configure" ]; then
       echo "#$version_configure"
       cat "$version_configure"
     fi
   elif [ ${options[default]} -eq 1 ]; then
-    if [ -f "$default_configure_options_file" ]; then
+    if [ -e "$default_configure_options_file" ]; then
       echo "#$default_configure_options_file"
       cat "$default_configure_options_file"
     fi
   else
-    if [ -f "$local_configure_options_file" ]; then
+    if [ -e "$local_configure_options_file" ]; then
       echo "#$local_configure_options_file"
       cat "$local_configure_options_file"
-    elif [ -f "$version_configure" ]; then
+    elif [ -e "$version_configure" ]; then
       version_configure="$PGENV_ROOT/configure_options-${pg_configure_version}"
       echo "#$version_configure"
       cat "$version_configure"
-    elif [ -f "$default_configure_options_file" ]; then
+    elif [ -e "$default_configure_options_file" ]; then
       echo "#$default_configure_options_file"
       cat "$default_configure_options_file"
     fi
@@ -173,7 +173,7 @@ exit $?
 #   pgenv configure -e --global
 #   pgenv configure -e --global 10.3
 #   pgenv configure -e --local <<EOF
-#   --with-libxml
+#   --with-libxml CFLAGS="-DOPTIMIZER_DEBUG"
 #   EOF
 #   pgenv configure -e --default
 #   pgenv configure [--global <current version> || -l --default]
@@ -185,14 +185,14 @@ exit $?
 #   -l, --list
 #     Show configure options.
 #
-#   --local
-#     Local configure options. Local file is 'pgenv_configure_opts' in current directory.
+#   --default
+#     Default configure options. Global file is $PGENV_ROOT/configure_options.
 #
 #   --global
 #     Global configure options of current context. The file is $PGENV_ROOT/configure_options-<version>.
 #
-#   --default
-#     Default configure options. Global file is $PGENV_ROOT/configure_options.
+#   --local
+#     Local configure options. Local file is 'pgenv_configure_opts' in current directory.
 #
 #
 #=end HELP

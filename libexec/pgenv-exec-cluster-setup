@@ -11,12 +11,12 @@ load_if_exists "pgenv-cluster-callback.sh" ||:
 # Command line options
 declare -A options
 options=(
-  [version]=""
-  [synchronous_standby_servers]=""
   [asynchronous_standby_servers]=""
-  [initdb_options]=""
-  [start_port]=24312
   [dry_run]=0
+  [initdb_options]=""
+  [synchronous_standby_servers]=""
+  [start_port]=24312
+  [version]=""
 )
 
 
@@ -35,28 +35,28 @@ parse_options() {
 
   while [ $# -gt 0 ]; do
     case "$1" in
-      -s|--sync-standby)
-        shift
-        options[synchronous_standby_servers]="${options[synchronous_standby_servers]} $1"
-        ;;
       -a|--async-standby)
         shift
         options[asynchronous_standby_servers]="${options[asynchronous_standby_servers]} $1"
+        ;;
+      -d|--dry-run)
+        options[dry_run]=1
         ;;
       -o|--initdb-options)
         shift
         options[initdb_options]="$1"
         ;;
-      -v|--version)
-        shift
-        options[version]="$1"
-        ;;
       -p|--start-port)
         shift
         options[start_port]="$1"
         ;;
-      -d|--dry-run)
-        options[dry_run]=1
+      -s|--sync-standby)
+        shift
+        options[synchronous_standby_servers]="${options[synchronous_standby_servers]} $1"
+        ;;
+      -v|--version)
+        shift
+        options[version]="$1"
         ;;
       -*)
         abort "error: $(self): invalid option: $1"
@@ -419,6 +419,9 @@ exit $?
 #     Asynchronous standby server. <name> is the instance directory, it must not include
 #     delimeter character like space.
 #
+#   -d, --dry-run
+#     Dry run, not setup a cluster but show setup information.
+#
 #   -o, --initdb-options <options>
 #     Options passed to 'initdb' command.
 #
@@ -432,9 +435,6 @@ exit $?
 #
 #   --start-port <port>
 #     Starting port number, which must be integer.
-#
-#   -d, --dry-run
-#     Dry run, not setup a cluster but show setup information.
 #
 #
 #=end HELP

@@ -31,8 +31,8 @@ parse_options() {
   while [ $# -gt 0 ]; do
     case "$1" in
       -a|--all)    options[all]=1      ;;
-      --all-logs)  options[all_logs]=1 ;;
       -f)          options[f]=1        ;;
+      --all-logs)  options[all_logs]=1 ;;
       -*)
         abort "error: $(self): invalid option: $1"
         ;;
@@ -139,11 +139,11 @@ exit $?
 #   -a, --all
 #     Tail all instance logs.
 #
-#   --all-logs
-#     Do tail all log files.
-#
 #   -f
 #     Run tail command with -f option.
+#
+#   --all-logs
+#     Do tail all log files.
 #
 #
 #=end HELP

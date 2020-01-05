@@ -672,7 +672,7 @@ attach_node() {
     declare -r port="$pg_start_port"
     declare -r pgdata="$PGENV_CLUSTER_ROOT/${new_node}"
 
-    if [ -d "$new_node" ]; then
+    if [ -e "$new_node" ]; then
       error "error: directory already exists: $new_node"
       abort "hint: set other instance name"
     fi

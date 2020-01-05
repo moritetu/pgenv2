@@ -10,8 +10,8 @@ source "$PGENV_LIBEXEC"/pgenv--cluster-functions
 declare -A options
 options=(
   [all]=0
-  [opts]=""
   [force]=0
+  [opts]=""
 )
 
 
@@ -33,12 +33,12 @@ parse_options() {
       -a|--all)
         options[all]=1
         ;;
+      -f|--force)
+        options[force]=1
+        ;;
       -o|--options)
         shift
         options[opts]="${options[opts]} $1"
-        ;;
-      -f|--force)
-        options[force]=1
         ;;
       -*)
         abort "error: $(self): invalid option: $1"

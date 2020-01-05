@@ -40,6 +40,7 @@ OLDPWD="$PWD"
 parse_options() {
 
   case "$ext_command" in
+
     (init)
 
       local arg= d_name= d_value=

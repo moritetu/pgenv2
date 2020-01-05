@@ -121,11 +121,11 @@ exit $?
 #   pgenv list -l
 #
 # OPTIONS
-#   -v, --verbose
-#     Show verbose output.
-#
 #   -l, --list
 #     Show only installed versions.
+#
+#   -v, --verbose
+#     Show verbose output.
 #
 #
 #=end HELP

@@ -7,14 +7,14 @@ source "$PGENV_LIBEXEC"/pgenv--load
 # Command line options
 declare -A options
 options=(
-  [root]=0
-  [source]=0
   [bin]=0
   [lib]=0
   [include]=0
-  [share]=0
-  [version]=""
+  [root]=0
   [samples]=0
+  [share]=0
+  [source]=0
+  [version]=""
 )
 
 # Arguments array
@@ -27,17 +27,17 @@ arguments=()
 parse_options() {
   while [ $# -gt 0 ]; do
     case "$1" in
+      -b|--bin)       options[bin]=1      ;;
+      -e|--samples)   options[samples]=1  ;;
+      -i|--include)   options[include]=1  ;;
+      -l|--lib)       options[lib]=1      ;;
       -r|--root)      options[root]=1     ;;
       -s|--source)    options[source]=1   ;;
-      -b|--bin)       options[bin]=1      ;;
-      -l|--lib)       options[lib]=1      ;;
-      -i|--include)   options[include]=1  ;;
-      -S|--share)     options[share]=1    ;;
-      -e|--samples)   options[samples]=1  ;;
       -v|--version)
         shift
         options[version]="$1"
         ;;
+      -S|--share)     options[share]=1    ;;
       -*)
         abort "error: $(self): invalid option: $1"
         ;;
@@ -163,26 +163,26 @@ exit $?
 #   -b, --bin
 #     Show path to the current version bin directory.
 #
-#   -l, --lib
-#     Show path to the current version lib directory.
+#   -e, --samples
+#     Show path to the samples directory.
 #
 #   -i, --include
 #     Show path to the current version include directory.
 #
-#   -S, --share
-#     Show path to the current version share directory.
+#   -l, --lib
+#     Show path to the current version lib directory.
 #
 #   -s, --source
 #     Show path to the current version source directory.
 #
-#   -e, --samples
-#     Show path to the samples directory.
+#   -r, --root
+#     Show pgenv root.
 #
 #   -v, --version <version>
 #     Switch prefix context to the context of <version> temporarily.
 #
-#   -r, --root
-#     Show pgenv root.
+#   -S, --share
+#     Show path to the current version share directory.
 #
 #
 #=end HELP

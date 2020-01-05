@@ -7,10 +7,10 @@ source "$PGENV_LIBEXEC"/pgenv--load
 # Command line options
 declare -A options
 options=(
+  [all]=0
   [force]=0
   [r_archive]=0
   [r_source]=0
-  [all]=0
 )
 
 # Arguments array
@@ -29,13 +29,13 @@ arguments=()
 parse_options() {
   while [ $# -gt 0 ]; do
     case "$1" in
-      -f|--force)        options[force]=1       ;;
-      --source)          options[r_source]=1    ;;
-      --archive)         options[r_archive]=1   ;;
       -a|--all)
         options[r_archive]=1
         options[r_source]=1
         ;;
+      -f|--force)        options[force]=1       ;;
+      --source)          options[r_source]=1    ;;
+      --archive)         options[r_archive]=1   ;;
       -*)
         abort "error: $(self): invalid option: $1"
         ;;
@@ -162,14 +162,14 @@ exit $?
 #   pgenv remove -f 10.3
 #
 # OPTIONS
-#   --archive
-#     Remove archive file too.
-#
 #   -a, --all
 #     Remove all files (archive and source and binary).
 #
 #   -f, --force
 #     Attempt to remove the files without prompting for confirmation.
+#
+#   --archive
+#     Remove archive file too.
 #
 #   --source
 #     Remove source files too.

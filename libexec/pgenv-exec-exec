@@ -6,9 +6,9 @@ source "$PGENV_LIBEXEC"/pgenv--load
 
 declare -A options
 options=(
-  [version]=""
   [envfile]=""
   [scriptfile]=""
+  [version]=""
 )
 
 # Execution command
@@ -35,10 +35,6 @@ parse_options() {
 
   while [ $# -gt 0 ]; do
     case "$1" in
-      -v|--version)
-        shift
-        options[version]="$1"
-        ;;
       -e|--envfile)
         shift
         options[envfile]="$1"
@@ -46,6 +42,10 @@ parse_options() {
       -f|--scriptfile)
         shift
         options[scriptfile]="$1"
+        ;;
+      -v|--version)
+        shift
+        options[version]="$1"
         ;;
       -*)
         abort "error: $(self): invalid option: $1"
@@ -59,7 +59,7 @@ parse_options() {
   done
 
   if [ -n "${options[scriptfile]}" ]; then
-    if [ ! -f "${options[scriptfile]}" ]; then
+    if [ ! -e "${options[scriptfile]}" ]; then
       abort "error: file does not exist: ${options[scriptfile]}"
     fi
     exec_scriptfile="${options[scriptfile]}"
@@ -76,7 +76,7 @@ parse_options() {
   fi
 
   if [ -n "${options[envfile]}" ]; then
-    if [ ! -f "${options[envfile]}" ]; then
+    if [ ! -e "${options[envfile]}" ]; then
       abort "error: environment file does not exist: ${options[envfile]}"
     fi
     pgenv_env_filename="${options[envfile]}"
@@ -113,14 +113,14 @@ execute_commands() {
     local include_envfile=
     local inst_version_env="${pgenv_instance_env_prefix}-${pg_version}"
     local inst_env="${pgenv_instance_env_prefix}"
-    if [ -f "$inst_version_env" ]; then
+    if [ -e "$inst_version_env" ]; then
       include_envfile="$inst_version_env"
-    elif [ -f "$inst_env" ]; then
+    elif [ -e "$inst_env" ]; then
       include_envfile="$inst_env"
     fi
   fi
 
-  if [ -f "$include_envfile" ]; then
+  if [ -e "$include_envfile" ]; then
     log_trace "==> include environment: $include_envfile"
     source "$include_envfile" "$pg_version"
   fi
@@ -182,15 +182,16 @@ exit $?
 #   SQL
 #
 # OPTIONS
-#   -v, --version <version>
-#     Version to execute commands.
-#
 #   -e <filename>
 #     The filename included at execution of commands.
 #
 #   -f <scriptfile>
 #     The execution script file. If commands are passed, script file is executed
 #     after command execution.
+#
+#   -v, --version <version>
+#     Version to execute commands.
+#
 #
 # ENVIRONMENT AT COMMAND EXECUTION
 #   `pgenv exec` loads local environment definitions from 'pgenv_myenv' file before execution of commands

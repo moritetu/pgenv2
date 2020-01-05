@@ -104,7 +104,7 @@ case ${arguments[0]:-""} in
     ;;
   start|stop|status|ctrl|tail|"exec")
     (
-      if [ ! -f "$PGENV_CLUSTER_ROOT"/"$PGENV_CLUSTER_CONFIG" ]; then
+      if [ ! -e "$PGENV_CLUSTER_ROOT"/"$PGENV_CLUSTER_CONFIG" ]; then
         error "error: '$PGENV_CLUSTER_ROOT' does not look like a cluster directory."
         abort "hint: '$PGENV_CLUSTER_CONFIG' does not exist under '$PGENV_CLUSTER_ROOT'."
       fi

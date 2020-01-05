@@ -78,7 +78,7 @@ set_global_link() {
 
   # Ok, we set current context to the new version.
   log_trace "==> link to $pg_setglobal_version"
-  if [ -d "$PGENV_DEFAULT_LINK" ]; then
+  if [ -e "$PGENV_DEFAULT_LINK" ]; then
     rm -rf "$PGENV_DEFAULT_LINK"
   fi
   ln -snf "$PGENV_VERSIONS_DIR/$pg_setglobal_version" "$PGENV_DEFAULT_LINK"
