@@ -33,7 +33,6 @@ on_primary_setup() {
   cat <<EOF > "$include_file"
 port = $port
 max_wal_senders = $((10 + $standby_num))
-wal_keep_segments = 16
 wal_level = logical
 archive_mode = on
 archive_command = 'cp %p "$archive_dir/%f"'
@@ -64,7 +63,6 @@ on_standby_setup() {
   log_trace "on_standby_setup"
   cat <<EOF > "$include_file"
 port = $port
-wal_keep_segments = 16
 hot_standby = on
 logging_collector = on
 log_filename = 'postgresql-%Y-%m-%d.log'
